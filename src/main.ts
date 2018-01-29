@@ -1,32 +1,36 @@
-/**
- * Some predefined delays (in milliseconds).
- */
-export enum Delays {
-  Short = 500,
-  Medium = 2000,
-  Long = 5000,
-}
+import * as wins from 'winston';
+import { MainController } from './logic/main.controller';
+// tslint:disable-next-line:no-import-side-effect
+import 'winston-daily-rotate-file';
+import * as nconf from 'nconf';
+// tslint:disable-next-line:no-require-imports no-var-requires
+require('../config.json');
 
-/**
- * Returns a Promise<string> that resolves after given time.
- *
- * @param {string} name - A name.
- * @param {number=} [delay=Delays.Medium] - Number of milliseconds to delay resolution of the Promise.
- * @returns {Promise<string>}
- */
-function delayedHello(name: string, delay: number = Delays.Medium): Promise<string> {
-  return new Promise<string>(
-    (resolve: (value?: string | PromiseLike<string>) => void) => setTimeout(
-      () => resolve(`Hello, ${name}`),
-      delay,
-    ),
-  );
-}
+// Configurations
+nconf.argv().env();
+nconf.file({ file: './config.json' });
+nconf.defaults({
+  botTokens: [],
+});
 
-// Below are examples of using TSLint errors suppression
-// Here it is supressing missing type definitions for greeter function
+// Logging
+const fileTransport = new wins.transports.DailyRotateFile({
+  filename: 'logs',
+  datePattern: '/yyyy/MM/bot-yyyy-MM-dd.log',
+  maxDays: 90,
+  createTree: true,
+});
 
-export async function greeter(name) { // tslint:disable-line typedef
-  // tslint:disable-next-line no-unsafe-any no-return-await
-  return await delayedHello(name, Delays.Long);
-}
+const logger = new wins.Logger({
+  level: 'debug',
+  transports: [
+    new (wins.transports.Console)(),
+    fileTransport,
+  ],
+});
+
+// tslint:disable-next-line:prefer-template
+logger.info('Logger level: ' + logger.level);
+
+let mainController : MainController = new MainController();
+mainController.startProgram(logger, nconf);

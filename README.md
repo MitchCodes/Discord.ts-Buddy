@@ -2,6 +2,18 @@
 
 Update this readme, it is still from the boilerplate.
 
+# Discord Team Channel Splitter Bot
+
+This is a bot using Discord.js written in TypeScript.
+
+# How to Run
+
+This bot was developed using Visual Studio Code. To run, just set main.ts/main.js as your start file.
+
+Some of the gotchas that I ran into:
+
++ Various NPM packages were failing to install because of a EPERM error. Running npm shrinkwrap before running the npm install fixed this.
+
 # node-typescript-boilerplate
 
 Minimalistic boilerplate to jump-start a [Node.js][nodejs] project in [TypeScript][typescript] [2.6][typescript-26].

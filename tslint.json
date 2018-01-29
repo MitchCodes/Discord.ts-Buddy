@@ -15,6 +15,12 @@
     "promise-function-async": false,
     "no-void-expression": false,
     "no-redundant-jsdoc": false,
+    "linebreak-style": false,
+    "prefer-const": false,
+    "no-trailing-whitespace": false,
+    "ordered-imports": false,
+    "prefer-template": false,
+    "no-backbone-get-set-outside-model": false,
     "trailing-comma": [ // https://palantir.github.io/tslint/rules/trailing-comma/
       true,
       {

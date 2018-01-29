@@ -1,29 +1,34 @@
-import { Delays, greeter } from '../src/main';
+import { MainController } from '../src/logic/main.controller';
+import * as wins from 'winston';
+import * as nconf from 'nconf';
 
-describe('greeter function', () => {
+describe('maincontroller tests', () => {
   // Read more about fake timers: http://facebook.github.io/jest/docs/en/timer-mocks.html#content
   jest.useFakeTimers();
 
-  const name: string = 'John';
-
-  let hello: string;
+  let mainController: MainController;
 
   // Act before assertions
   beforeAll(async () => {
-    const p: Promise<string> = greeter(name);
     jest.runOnlyPendingTimers();
-    hello = await p;
+    mainController = new MainController();
+
+    nconf.file({ file: '../src/config.json' });
+    nconf.defaults({
+      botTokens: [],
+    });
+
+    let logger = new wins.Logger({
+      level: 'debug',
+      transports: [
+        new (wins.transports.Console)(),
+      ],
+    });
+    mainController.startProgram(logger, nconf);
   });
 
-  // Assert if setTimeout was called properly
-  it('delays the greeting by 2 seconds', () => {
-    expect((<jest.Mock<void>> setTimeout).mock.calls.length).toBe(1);
-    expect((<jest.Mock<void>> setTimeout).mock.calls[0][1]).toBe(Delays.Long);
-  });
-
-  // Assert greeter result
-  it('greets a user with `Hello, {name}` message', () => {
-    expect(hello).toBe(`Hello, ${name}`);
+  it('create main controller and start program', () => {
+    expect(mainController).toBeDefined();
   });
 
 });
