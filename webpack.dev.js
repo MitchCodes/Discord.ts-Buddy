@@ -1,5 +1,27 @@
 const merge = require('webpack-merge');
 const common = require('./webpack.common.js');
+var fs = require('fs');
+var MergeJsonWebpackPlugin = require("merge-jsons-webpack-plugin");
+
+var configFiles = [];
+if (fs.existsSync('./config.common.json')) {
+    configFiles.push('./config.common.json');
+}
+
+if (fs.existsSync('./config.dev.json')) {
+    configFiles.push('./config.dev.json');
+}
+
+var plugins = [];
+if (configFiles.length > 0) {
+    plugins.push(new MergeJsonWebpackPlugin({
+        'files': configFiles,
+        'output': {
+            'fileName': './config.json'
+        }
+    }));
+}
+
 
 module.exports = merge(common, {
     module: {
@@ -17,5 +39,6 @@ module.exports = merge(common, {
                 }
             }
         ]
-    }
+    },
+    plugins: plugins
 });

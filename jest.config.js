@@ -8,6 +8,7 @@ module.exports = {
     'tsx',
     'js',
     'jsx',
+    'json'
   ],
   testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.(ts|js)x?$',
   coverageDirectory: 'coverage',

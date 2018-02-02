@@ -6,13 +6,9 @@ Update this readme, it is still from the boilerplate.
 
 This is a bot using Discord.js written in TypeScript.
 
-# How to Run
+# Features
 
-This bot was developed using Visual Studio Code. To run, just set main.ts/main.js as your start file.
-
-Some of the gotchas that I ran into:
-
-+ Various NPM packages were failing to install because of a EPERM error. Running npm shrinkwrap before running the npm install fixed this.
+# IDE Suggestion
 
 # node-typescript-boilerplate
 

@@ -16,7 +16,7 @@ module.exports = {
   devtool: 'source-map',
   target: 'node',
   output: {
-    path: path.join(__dirname, 'build', 'src'),
+    path: path.join(__dirname, 'build'),
     filename: 'main.js',
     devtoolModuleFilenameTemplate: '[absolute-resource-path]'
   },

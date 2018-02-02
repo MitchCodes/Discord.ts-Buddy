@@ -3,8 +3,6 @@ import { MainController } from './logic/main.controller';
 // tslint:disable-next-line:no-import-side-effect
 import 'winston-daily-rotate-file';
 import * as nconf from 'nconf';
-// tslint:disable-next-line:no-require-imports no-var-requires
-require('../config.json');
 
 // Configurations
 nconf.argv().env();
@@ -29,7 +27,6 @@ const logger = new wins.Logger({
   ],
 });
 
-// tslint:disable-next-line:prefer-template
 logger.info('Logger level: ' + logger.level);
 
 let mainController : MainController = new MainController();

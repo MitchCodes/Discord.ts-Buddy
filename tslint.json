@@ -21,6 +21,10 @@
     "ordered-imports": false,
     "prefer-template": false,
     "no-backbone-get-set-outside-model": false,
+    "no-any": false,
+    "no-this-assignment": false,
+    "no-var-self": false,
+    "interface-name": false, // https://github.com/Microsoft/TypeScript/wiki/Coding-guidelines <-- interfaces should not start with I
     "trailing-comma": [ // https://palantir.github.io/tslint/rules/trailing-comma/
       true,
       {

@@ -16,11 +16,13 @@
     "tslint": "~5.9.1",
     "tslint-microsoft-contrib": "~5.0.2",
     "tsutils": "~2.18.0",
-    "typescript": "~2.6.2"
+    "typescript": "~2.6.2",
+    "merge-jsons-webpack-plugin": "~1.0.12"
   },
   "scripts": {
     "clean": "rimraf coverage build tmp",
-    "build": "webpack --config webpack.prod.js",
+    "build": "webpack --config webpack.dev.js",
+    "build-prod": "webpack --config webpack.prod.js",
     "watch": "webpack --config webpack.dev.js --watch",
     "lint": "tslint -t stylish --project \"tsconfig.json\"",
     "lint-autofix": "tslint -t stylish --fix --project \"tsconfig.json\"",
@@ -45,9 +47,15 @@
     "moment": "~2.20.1",
     "express": "~4.16.2",
     "nconf": "~0.10.0",
+    "rxjs": "~5.5.6",
     "webpack": "~3.10.0",
     "webpack-merge": "~4.1.1",
     "ts-loader": "~3.3.1",
-    "file-loader": "~1.1.6"
+    "file-loader": "~1.1.6",
+    "discord.js": "~11.3.0",
+    "bufferutil": "~3.0.3",
+    "sodium": "2.0.1",
+    "node-opus": "0.2.7",
+    "erlpack": "github:hammerandchisel/erlpack"
   }
 }
