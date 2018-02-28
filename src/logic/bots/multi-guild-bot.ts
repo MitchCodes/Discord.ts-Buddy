@@ -41,7 +41,6 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         this.conf = passedConf;
 
         this.subscribeToSubjects();
-        this.setupBotEvents();
         this.setupBot();
     }
 
@@ -55,6 +54,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
             }
     
             this.botClient = new Client();
+            this.setupBotEvents();
             this.botClient.login(this.botToken).then(() => {
                 this.botInfo('Logged in.');
                 this.onBotLoggedIn.next(true);

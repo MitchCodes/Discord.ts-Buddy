@@ -13,7 +13,7 @@ describe('maincontroller tests', () => {
     jest.runOnlyPendingTimers();
     mainController = new MainController();
 
-    nconf.file({ file: '../src/config.json' });
+    nconf.file({ file: '../config.common.json' });
     nconf.defaults({
       botTokens: [],
     });

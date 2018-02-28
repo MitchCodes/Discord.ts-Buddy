@@ -10,7 +10,7 @@ module.exports = {
     'jsx',
     'json'
   ],
-  testRegex: '(/__tests__/)(?!bots/).*(spec|test)\.(ts|js)x?$',
+  testRegex: '(/__tests__/).*(bots/).*(spec|test).(ts|js)x?$',
   coverageDirectory: 'coverage',
   collectCoverageFrom: [
     'src/**/*.{ts,tsx,js,jsx}',

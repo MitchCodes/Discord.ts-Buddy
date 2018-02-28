@@ -29,7 +29,9 @@
     "pretest": "npm run lint",
     "test": "npm run test-only",
     "test-only": "jest --coverage",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "test-basic": "jest",
+    "test-bots": "jest --config=jest.bots.config.js"
   },
   "author": "Mitch Chiles <mitchchiles@gmail.com>",
   "repository": {
@@ -56,6 +58,8 @@
     "bufferutil": "~3.0.3",
     "sodium": "2.0.1",
     "node-opus": "0.2.7",
-    "erlpack": "github:hammerandchisel/erlpack"
+    "erlpack": "github:hammerandchisel/erlpack",
+    "ffmpeg-binaries": "~3.2.2-3",
+    "azure-storage": "~2.8.0"
   }
 }
