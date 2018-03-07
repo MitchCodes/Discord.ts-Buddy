@@ -31,7 +31,8 @@
     "test-only": "jest --coverage",
     "test:watch": "jest --watch",
     "test-basic": "jest",
-    "test-bots": "jest --config=jest.bots.config.js"
+    "test-bots": "jest --rootDir=./ --config=./jest/jest.bots.config.js",
+    "test-azure": "jest --rootDir=./ --config=./jest/jest.azure.config.js"
   },
   "author": "Mitch Chiles <mitchchiles@gmail.com>",
   "repository": {
