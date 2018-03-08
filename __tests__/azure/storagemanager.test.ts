@@ -2,6 +2,7 @@ import { AzureStorageManager, IAzureSavable, AzureResult, IAzureResult, AzureRes
 import * as wins from 'winston';
 import * as nconf from 'nconf';
 import { ModelComparer } from '../../src/logic/helpers/modelcompare.helper';
+import { TableQuery } from 'azure-storage';
 
 export class CarTest implements IAzureSavable {
     public partitionKey: string;
@@ -144,7 +145,7 @@ describe('azure-storage-manager-tests', () => {
         });
     });
     
-    test('can insert record and retrieve', (done: any) => {
+    test('can insert record, retrieve, query and remove', (done: any) => {
         let newCar: CarTest = new CarTest();
         newCar.partitionKey = 'cars';
         newCar.rowKey = 'car1';
@@ -173,7 +174,27 @@ describe('azure-storage-manager-tests', () => {
                 expect(dataSuccess.data[0].isOn === false).toBeTruthy();
                 dataSuccess.data[0].turnOn();
                 expect(dataSuccess.data[0].isOn === true).toBeTruthy();
-                done();
+                manager.getByPartitionKey(storageTable, 'cars').then((dataPartitionSuccess: AzureResult<CarTest>) => {
+                    expect(dataPartitionSuccess.data.length > 0).toBeTruthy();
+                    let query: TableQuery = new TableQuery().where('make eq ?', 'Honda');
+                    manager.getByQuery(storageTable, query).then((dataQuerySuccess: AzureResult<CarTest>) => {
+                        expect(dataQuerySuccess.data.length > 0).toBeTruthy();
+                        manager.remove(storageTable, newCar).then((dataRemoveSuccess: AzureResult<CarTest>) => {
+                            expect(dataRemoveSuccess !== null).toBeTruthy();
+                            done();
+                        }).catch((dataRemoveErr: AzureResult<CarTest>) => {
+                            expect(dataRemoveErr.status !== AzureResultStatus.error).toBeTruthy();
+                            done();
+                        });
+                    }).catch((dataQueryErr: AzureResult<CarTest>) => {
+                        expect(dataQueryErr.status !== AzureResultStatus.error).toBeTruthy();
+                        done();
+                    });
+                    done();
+                }).catch((dataErrPartKey: AzureResult<CarTest>) => {
+                    expect(dataErrPartKey.status !== AzureResultStatus.error).toBeTruthy();
+                    done();
+                });
             }).catch((dataErr: AzureResult<CarTest>) => {
                 expect(dataErr.status !== AzureResultStatus.error).toBeTruthy();
                 done();

@@ -92,10 +92,41 @@ export class AzureStorageManager<T extends IAzureSavable> {
         return this.insertOrReplaceObj(tableName, input);
     }
 
-    public getByPartitionAndRowKey(tableName: string, partitionKey: string, rowKey: string): Promise<AzureResult<T>>  {
+    public getByPartitionAndRowKey(tableName: string, partitionKey: string, rowKey: string): Promise<AzureResult<T>> {
         return new Promise<AzureResult<T>>((resolve : (val: AzureResult<T>) => void, reject : (val: AzureResult<T>) => void) => {
             let tableQuery: TableQuery = new TableQuery().where('PartitionKey eq ?', partitionKey).and('RowKey eq ?', rowKey);
             this.executeQuery(tableName, tableQuery).then((success: AzureResult<T>) => {
+                resolve(success);
+            }).catch((err: AzureResult<T>) => {
+                reject(err);
+            });
+        });
+    }
+
+    public getByPartitionKey(tableName: string, partitionKey: string): Promise<AzureResult<T>> {
+        return new Promise<AzureResult<T>>((resolve : (val: AzureResult<T>) => void, reject : (val: AzureResult<T>) => void) => {
+            let tableQuery: TableQuery = new TableQuery().where('PartitionKey eq ?', partitionKey);
+            this.executeQuery(tableName, tableQuery).then((success: AzureResult<T>) => {
+                resolve(success);
+            }).catch((err: AzureResult<T>) => {
+                reject(err);
+            });
+        });
+    }
+
+    public getByQuery(tableName: string, query: TableQuery): Promise<AzureResult<T>> {
+        return new Promise<AzureResult<T>>((resolve : (val: AzureResult<T>) => void, reject : (val: AzureResult<T>) => void) => {
+            this.executeQuery(tableName, query).then((success: AzureResult<T>) => {
+                resolve(success);
+            }).catch((err: AzureResult<T>) => {
+                reject(err);
+            });
+        });
+    }
+
+    public remove(tableName: string, objToRemove: T): Promise<AzureResult<T>> {
+        return new Promise<AzureResult<T>>((resolve : (val: AzureResult<T>) => void, reject : (val: AzureResult<T>) => void) => {
+            this.removeObj(tableName, objToRemove).then((success: AzureResult<T>) => {
                 resolve(success);
             }).catch((err: AzureResult<T>) => {
                 reject(err);
@@ -195,6 +226,24 @@ export class AzureStorageManager<T extends IAzureSavable> {
         });
     }
 
+    private removeObj(tableName: string, obj: T): Promise<IAzureResult> {
+        return new Promise<IAzureResult>((resolve : (val: IAzureResult) => void, reject : (val: IAzureResult) => void) => {
+            let azureResult: AzureResult<T> = new AzureResult<T>();
+            let azureObj = this.convertToAzureObjOnlyKeys(obj);
+            this.tblService.deleteEntity(tableName, azureObj, {}, (error: any, response: any) => {
+                if (error) {
+                    azureResult.status = AzureResultStatus.error;
+                    azureResult.message = 'Error deleting entity: ' + error;
+                    azureResult.error = new Error('Error deleting entity: ' + error);
+                    reject(azureResult);
+                } else {
+                    azureResult.status = AzureResultStatus.success;
+                    resolve(azureResult);
+                }
+            });
+        });
+    }
+
     private convertToAzureObj(obj: T): Object {
         let entGen = TableUtilities.entityGenerator;
         let returnObj: Object = {};
@@ -230,6 +279,17 @@ export class AzureStorageManager<T extends IAzureSavable> {
                 continue;
             }
         }    
+
+        return returnObj;
+    }
+
+    private convertToAzureObjOnlyKeys(obj: T): Object {
+        let entGen = TableUtilities.entityGenerator;
+        let returnObj: Object = {};
+        // tslint:disable-next-line:no-string-literal
+        returnObj['PartitionKey'] = entGen.String(obj.partitionKey);
+        // tslint:disable-next-line:no-string-literal
+        returnObj['RowKey'] = entGen.String(obj.rowKey);
 
         return returnObj;
     }
