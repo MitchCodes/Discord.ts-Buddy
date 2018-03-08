@@ -24,18 +24,20 @@ describe('multi-guild-bot tests', () => {
         // Even though this file is in two directories deep, the context of running the tests is in the root folder.
         nconf.file({ file: './config.common.json' });
         nconf.defaults({
-            testBots: {
-                mainBotToken: '',
-                secondBotToken: '',
-                testDiscordGuildId: '',
-                testDiscordVoiceChannelName: '',
+            test: {
+                bots: {
+                    mainBotToken: '',
+                    secondBotToken: '',
+                    testDiscordGuildId: '',
+                    testDiscordVoiceChannelName: '',
+                },
             },
         });
 
-        mainBotToken = nconf.get('testBots:mainBotToken');
-        secondBotToken = nconf.get('testBots:secondBotToken');
-        guildTestOnId = nconf.get('testBots:testDiscordGuildId');
-        voiceChannelName = nconf.get('testBots:testDiscordVoiceChannelName');
+        mainBotToken = nconf.get('test:bots:mainBotToken');
+        secondBotToken = nconf.get('test:bots:secondBotToken');
+        guildTestOnId = nconf.get('test:bots:testDiscordGuildId');
+        voiceChannelName = nconf.get('test:bots:testDiscordVoiceChannelName');
 
         logger = new wins.Logger({
             level: 'debug',
@@ -115,20 +117,20 @@ describe('multi-guild-bot tests', () => {
         expect(mainBotVoiceChannel.joinable).toBeTruthy();
     });
 
-    test('can join voice channel', (done: any) => {
-        mainBotVoiceChannel.join().then((voiceConn: VoiceConnection) => {
-            logger.info('connected');
-            voiceConn.on('disconnect', () => {
-                logger.info('disconnected');
-                expect(true).toBeTruthy();
-                done();
-            });
-            expect(true).toBeTruthy();
-            voiceConn.disconnect();
-        }).catch((reason: any) => {
-            logger.error('Error connecting to voice channel: ' + reason);
-            done();
-        });
-    },   15000);
+    // test('can join voice channel', (done: any) => {
+    //     mainBotVoiceChannel.join().then((voiceConn: VoiceConnection) => {
+    //         logger.info('connected');
+    //         voiceConn.on('disconnect', () => {
+    //             logger.info('disconnected');
+    //             expect(true).toBeTruthy();
+    //             done();
+    //         });
+    //         expect(true).toBeTruthy();
+    //         voiceConn.disconnect();
+    //     }).catch((reason: any) => {
+    //         logger.error('Error connecting to voice channel: ' + reason);
+    //         done();
+    //     });
+    // },   15000);
 
 });

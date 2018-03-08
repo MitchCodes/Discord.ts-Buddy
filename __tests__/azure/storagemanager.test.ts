@@ -1,5 +1,6 @@
-import { AzureStorageManager, IAzureSavable } from '../../src/data/azurestoragemanager.logic';
+import { AzureStorageManager, IAzureSavable, AzureResult, IAzureResult, AzureResultStatus } from '../../src/data/azurestoragemanager.logic';
 import * as wins from 'winston';
+import * as nconf from 'nconf';
 import { ModelComparer } from '../../src/logic/helpers/modelcompare.helper';
 
 export class CarTest implements IAzureSavable {
@@ -36,10 +37,28 @@ describe('azure-storage-manager-tests', () => {
     let testModel: CarTest;
     let convObject: Object = null;
     let convertedTestModel: CarTest;
+    let testModelManager: any;
 
-    let testModelManager: AzureStorageManager<CarTest>;
+    let storageAcct: string;
+    let storageKey: string;
+    let storageTable: string;
 
     beforeAll(() => {
+        nconf.file({ file: './config.common.json' });
+        nconf.defaults({
+            test: {
+                azure: {
+                    testAccount: '',
+                    testAccountKey: '',
+                    testTable: 'unittests',
+                },
+            },
+        });
+
+        storageAcct = nconf.get('test:azure:testAccount');
+        storageKey = nconf.get('test:azure:testAccountKey');
+        storageTable = nconf.get('test:azure:testTable');
+
         testModel = new CarTest();
         testModel.partitionKey = 'testPartition';
         testModel.rowKey = 'row 1';
@@ -58,6 +77,8 @@ describe('azure-storage-manager-tests', () => {
               new (wins.transports.Console)(),
             ],
           });
+
+        logger.info('Account: ' + storageAcct);
 
         testModelManager = new AzureStorageManager<CarTest>(CarTest);
         convObject = testModelManager.convertToAzureObj(testModel);
@@ -111,4 +132,56 @@ describe('azure-storage-manager-tests', () => {
         expect(upgradedObj.classVersion === 2 && upgradedObj.tireName === 'New Tire').toBeTruthy();
     });
 
+    test('can create test table', (done: any) => {
+        let manager: AzureStorageManager<CarTest> = new AzureStorageManager<CarTest>(CarTest, storageAcct, storageKey);
+        manager.initializeConnection();
+        manager.createTableIfNotExists(storageTable).then((success: IAzureResult) => {
+            expect(success !== null).toBeTruthy();
+            done();
+        }).catch((err: IAzureResult) => {
+            expect(err.status !== AzureResultStatus.error).toBeTruthy();
+            done();
+        });
+    });
+    
+    test('can insert record and retrieve', (done: any) => {
+        let newCar: CarTest = new CarTest();
+        newCar.partitionKey = 'cars';
+        newCar.rowKey = 'car1';
+        newCar.color = 'Blue';
+        newCar.make = 'Honda';
+        newCar.model = 'Civic';
+        newCar.year = 2003;
+        newCar.dateMade = new Date();
+        newCar.turboType = undefined; // test undefined scenario
+        newCar.engine = { isPowerful: true };
+        newCar.classVersion = 1;
+        newCar.isOn = false;
+
+        let manager: AzureStorageManager<CarTest> = new AzureStorageManager<CarTest>(CarTest, storageAcct, storageKey);
+        manager.initializeConnection();
+
+        manager.save(storageTable, newCar).then((success: IAzureResult) => {
+            expect(success !== null).toBeTruthy();
+            manager.getByPartitionAndRowKey(storageTable, 'cars', 'car1').then((dataSuccess: AzureResult<CarTest>) => {
+                // tslint:disable-next-line:no-console
+                console.log(dataSuccess.data);
+                expect(dataSuccess.data.length > 0).toBeTruthy();
+                if (dataSuccess.data.length > 0) {
+                    expect(dataSuccess.data[0].make === 'Honda').toBeTruthy();
+                }
+                expect(dataSuccess.data[0].isOn === false).toBeTruthy();
+                dataSuccess.data[0].turnOn();
+                expect(dataSuccess.data[0].isOn === true).toBeTruthy();
+                done();
+            }).catch((dataErr: AzureResult<CarTest>) => {
+                expect(dataErr.status !== AzureResultStatus.error).toBeTruthy();
+                done();
+            });
+        }).catch((err: IAzureResult) => {
+            expect(err.status !== AzureResultStatus.error).toBeTruthy();
+            done();
+        });
+        
+    });
 });

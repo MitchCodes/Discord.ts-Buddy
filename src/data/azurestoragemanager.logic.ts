@@ -1,4 +1,4 @@
-import { TableService, ErrorOrResult, TableUtilities } from 'azure-storage';
+import { TableService, ErrorOrResult, TableUtilities, ExponentialRetryPolicyFilter, createTableService, TableQuery } from 'azure-storage';
 
 export interface IAzureSavable {
     partitionKey: string;
@@ -18,15 +18,18 @@ export interface IAzureResult {
     status: AzureResultStatus;
     error: Error;
     message: string;
+    data: any;
 }
 
-export class AzureResult implements IAzureResult {
+export class AzureResult<T extends IAzureSavable> implements IAzureResult {
     public status: AzureResultStatus;
     public error: Error;
     public message: string;
+    public data: T[];
 
     public constructor() {
         this.status = AzureResultStatus.pending;
+        this.data = [];
     }
 }
 
@@ -50,7 +53,149 @@ export class AzureStorageManager<T extends IAzureSavable> {
         }
     }
 
-    public convertToAzureObj(obj: T): Object {
+    public initializeConnection(): void {
+        if (this.overrideTableService === null) {
+            let retryFilter: ExponentialRetryPolicyFilter = new ExponentialRetryPolicyFilter(0, 300, 300, 10000);
+            if (this.azureStorageAccount !== '' && this.azureStorageKey !== '') {
+                this.tblService = new TableService(this.azureStorageAccount, this.azureStorageKey).withFilter(retryFilter);
+            } else {
+                this.tblService = new TableService().withFilter(retryFilter);
+            }
+        }
+    }
+
+    public createTableIfNotExists(tableName: string): Promise<IAzureResult> {
+        return new Promise<IAzureResult>((resolve : (val: IAzureResult) => void, reject : (val: IAzureResult) => void) => {
+            let result: AzureResult<T> = new AzureResult<T>();
+            if (this.tblService !== null) {
+                this.tblService.createTableIfNotExists(tableName, (createError: any, createResult: any, createResponse: any) => {
+                    if (!createError) {
+                        result.status = AzureResultStatus.success;
+                        result.message = 'Succesfully created table if it does not exist.';
+                        resolve(result);
+                    } else {
+                        result.error = new Error('Error creating table ' + tableName + ': ' + createError);
+                        result.message = 'Error creating table ' + tableName + ': ' + createError;
+                        reject(result);
+                    }
+                });
+            } else {
+                result.status = AzureResultStatus.error;
+                result.message = 'Table service was null';
+                result.error = new Error('Table service was null');
+                reject(result);
+            }
+        });
+    }
+
+    public save(tableName: string, input: T): Promise<IAzureResult> {
+        return this.insertOrReplaceObj(tableName, input);
+    }
+
+    public getByPartitionAndRowKey(tableName: string, partitionKey: string, rowKey: string): Promise<AzureResult<T>>  {
+        return new Promise<AzureResult<T>>((resolve : (val: AzureResult<T>) => void, reject : (val: AzureResult<T>) => void) => {
+            let tableQuery: TableQuery = new TableQuery().where('PartitionKey eq ?', partitionKey).and('RowKey eq ?', rowKey);
+            this.executeQuery(tableName, tableQuery).then((success: AzureResult<T>) => {
+                resolve(success);
+            }).catch((err: AzureResult<T>) => {
+                reject(err);
+            });
+        });
+    }
+
+    private executeQuery(tableName: string, tableQuery: TableQuery): Promise<AzureResult<T>> {
+        return new Promise<AzureResult<T>>((resolve : (val: AzureResult<T>) => void, reject : (val: AzureResult<T>) => void) => {
+            this.executeQueryContinuation(tableName, tableQuery, [], null).then((success: AzureResult<T>) => {
+                resolve(success);
+            }).catch((err: AzureResult<T>) => {
+                reject(err);
+            });
+        });
+    }
+
+    private executeQueryContinuation(tableName: string, tableQuery: TableQuery, 
+                                     dataArray: T[], contToken: TableService.TableContinuationToken): Promise<AzureResult<T>> {
+        return new Promise<AzureResult<T>>((resolve : (val: AzureResult<T>) => void, reject : (val: AzureResult<T>) => void) => {
+            if (this.tblService === undefined || this.tblService === null) {
+                let tblServiceNullResult: AzureResult<T> = new AzureResult<T>();
+                tblServiceNullResult.status = AzureResultStatus.error;
+                tblServiceNullResult.error = new Error('Table service is not defined for querying');
+                tblServiceNullResult.message = 'Table service is not defined for querying';
+                reject(tblServiceNullResult);
+            }
+            this.tblService.queryEntities(tableName, tableQuery, contToken, (error: any, result: any, response: any) => {
+                if (!error) {
+                    for (let entry of result.entries) {
+                        let normalObject: Object = this.convertFromAzureObjToObject(entry);
+                        this.updateModel(normalObject); // update the model for migration purposes
+                        dataArray.push(this.convertFromObjToType(normalObject));
+                    }
+                    if (result.continuationToken !== null) {
+                        // tslint:disable-next-line:max-line-length
+                        this.executeQueryContinuation(tableName, tableQuery, dataArray, result.continuationToken).then((success: AzureResult<T>) => {
+                            resolve(success);
+                        }).catch((err: AzureResult<T>) => {
+                            reject(err);
+                        });
+                    } else {
+                        let finishDataResult: AzureResult<T> = new AzureResult<T>();
+                        finishDataResult.status = AzureResultStatus.success;
+                        finishDataResult.message = 'Successfully queried data';
+                        finishDataResult.data = dataArray;
+                        resolve(finishDataResult);
+                    }
+                } else {
+                    // tslint:disable-next-line:no-console
+                    console.log(error);
+                    let queryErrorResult: AzureResult<T> = new AzureResult<T>();
+                    queryErrorResult.error = new Error(error);
+                    queryErrorResult.message = error;
+                    queryErrorResult.status = AzureResultStatus.error;
+                    reject(queryErrorResult);
+                }
+            });
+        });
+    }
+
+    private updateModel(inputObject: Object): void {
+        let newModel: T = this.getNew();
+        let inputVersion: number = -1;
+        // tslint:disable-next-line:no-string-literal
+        if (inputObject['classVersion'] !== undefined && inputObject['classVersion'] !== null) {
+            // tslint:disable-next-line:no-string-literal
+            inputVersion = inputObject['classVersion'];
+        }
+        let updated: boolean = newModel.handleVersionChange(inputObject, inputVersion, newModel.classVersion);
+        if (updated) {
+            // tslint:disable-next-line:no-string-literal
+            inputObject['classVersion'] = newModel.classVersion;
+        }
+    }
+
+    private getNew(): T {
+        return new this.testType();
+    }
+
+    private insertOrReplaceObj(tableName: string, obj: T): Promise<IAzureResult> {
+        return new Promise<IAzureResult>((resolve : (val: IAzureResult) => void, reject : (val: IAzureResult) => void) => {
+            let azureResult: AzureResult<T> = new AzureResult<T>();
+            azureResult.status = AzureResultStatus.executing;
+            let azureObj = this.convertToAzureObj(obj);
+            this.tblService.insertOrReplaceEntity(tableName, azureObj, {}, (error: any, result: any, response: any) => {
+                if (error) {
+                    azureResult.status = AzureResultStatus.error;
+                    azureResult.message = 'Error inserting new entity: ' + error;
+                    azureResult.error = new Error('Error inserting new entity: ' + error);
+                    reject(azureResult);
+                } else {
+                    azureResult.status = AzureResultStatus.success;
+                    resolve(azureResult);
+                }
+            });
+        });
+    }
+
+    private convertToAzureObj(obj: T): Object {
         let entGen = TableUtilities.entityGenerator;
         let returnObj: Object = {};
         let objectKeys: string[] = Object.keys(obj);
@@ -89,7 +234,7 @@ export class AzureStorageManager<T extends IAzureSavable> {
         return returnObj;
     }
 
-    public convertFromAzureObjToObject(azureObj: Object): Object {
+    private convertFromAzureObjToObject(azureObj: Object): Object {
         let returnObj: Object = {};
 
         let azureObjectKeys: string[] = Object.keys(azureObj);
@@ -109,7 +254,7 @@ export class AzureStorageManager<T extends IAzureSavable> {
         return returnObj;
     }
 
-    public convertFromObjToType(obj: Object): T {
+    private convertFromObjToType(obj: Object): T {
         let returnObj: T = this.getNew();
 
         let objectKeys: string[] = Object.keys(obj);
@@ -119,50 +264,6 @@ export class AzureStorageManager<T extends IAzureSavable> {
         }
 
         return returnObj;
-    }
-
-    public initiateTableService() {
-        if (this.overrideTableService === null) {
-            if (this.azureStorageAccount !== '' && this.azureStorageKey !== '') {
-                this.tblService = new TableService(this.azureStorageAccount, this.azureStorageKey);
-            } else {
-                this.tblService = new TableService();
-            }
-        }
-    }
-
-    public updateModel(inputObject: Object) {
-        let newModel: T = this.getNew();
-        // tslint:disable-next-line:no-string-literal
-        let inputVersion: number = inputObject['classVersion'];
-        let updated: boolean = newModel.handleVersionChange(inputObject, inputVersion, newModel.classVersion);
-        if (updated) {
-            // tslint:disable-next-line:no-string-literal
-            inputObject['classVersion'] = newModel.classVersion;
-        }
-    }
-
-    private getNew(): T {
-        return new this.testType();
-    }
-
-    private insertOrReplaceObj(tableName: string, obj: T): Promise<IAzureResult> {
-        return new Promise<IAzureResult>((resolve : (val: IAzureResult) => void, reject : (val: IAzureResult) => void) => {
-            let azureResult: AzureResult = new AzureResult();
-            azureResult.status = AzureResultStatus.executing;
-            let azureObj = this.convertToAzureObj(obj);
-            this.tblService.insertEntity(tableName, azureObj, {}, (error: any, result: any, response: any) => {
-                if (error) {
-                    azureResult.status = AzureResultStatus.error;
-                    azureResult.message = 'Error inserting new entity: ' + error;
-                    azureResult.error = new Error('Error inserting new entity: ' + error);
-                    reject(azureResult);
-                } else {
-                    azureResult.status = AzureResultStatus.success;
-                    resolve(azureResult);
-                }
-            });
-        });
     }
 
     // private getObjBasedOnPartitionKey(partitionKey: string) {
