@@ -205,4 +205,7 @@ describe('azure-storage-manager-tests', () => {
         });
         
     });
+
+    // tslint:disable-next-line:no-suspicious-comment
+    //TODO: Add unit tests for batch processing
 });
