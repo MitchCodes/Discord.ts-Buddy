@@ -1,5 +1,7 @@
-import { AzureStorageManager, IAzureSavable, AzureResult, IAzureResult, AzureResultStatus } from '../../src/data/azurestoragemanager.logic';
-import * as wins from 'winston';
+// tslint:disable:no-console no-require-imports no-var-requires
+import { AzureStorageManager, IAzureSavable, AzureResult, IAzureResult, 
+         AzureResultStatus, AzureBatchResult, AzureBatchResults, AzureBatchResultStatus } from '../../src/data/azurestoragemanager.logic';
+import * as winston from 'winston';
 import * as nconf from 'nconf';
 import { ModelComparer } from '../../src/logic/helpers/modelcompare.helper';
 import { TableQuery } from 'azure-storage';
@@ -34,7 +36,7 @@ export class CarTest implements IAzureSavable {
 }
 
 describe('azure-storage-manager-tests', () => {
-    let logger: wins.LoggerInstance;
+    let logger: winston.LoggerInstance;
     let testModel: CarTest;
     let convObject: Object = null;
     let convertedTestModel: CarTest;
@@ -72,10 +74,10 @@ describe('azure-storage-manager-tests', () => {
         testModel.engine = { isPowerful: true };
         testModel.classVersion = 1;
 
-        logger = new wins.Logger({
+        logger = new winston.Logger({
             level: 'debug',
             transports: [
-              new (wins.transports.Console)(),
+              new (winston.transports.Console)(),
             ],
           });
 
@@ -165,8 +167,6 @@ describe('azure-storage-manager-tests', () => {
         manager.save(storageTable, newCar).then((success: IAzureResult) => {
             expect(success !== null).toBeTruthy();
             manager.getByPartitionAndRowKey(storageTable, 'cars', 'car1').then((dataSuccess: AzureResult<CarTest>) => {
-                // tslint:disable-next-line:no-console
-                console.log(dataSuccess.data);
                 expect(dataSuccess.data.length > 0).toBeTruthy();
                 if (dataSuccess.data.length > 0) {
                     expect(dataSuccess.data[0].make === 'Honda').toBeTruthy();
@@ -206,6 +206,50 @@ describe('azure-storage-manager-tests', () => {
         
     });
 
-    // tslint:disable-next-line:no-suspicious-comment
-    //TODO: Add unit tests for batch processing
+    test('batch insert, batch remove', (done: any) => {
+        let lotsaCars: CarTest[] = generateLotsOfCars('batchTest1', 150);
+        console.log('Cars generated: ' + lotsaCars.length);
+
+        let manager: AzureStorageManager<CarTest> = new AzureStorageManager<CarTest>(CarTest, storageAcct, storageKey);
+        //let managerAny: any = <any>manager;
+        manager.initializeConnection();
+        manager.saveMany(storageTable, lotsaCars).then((success: AzureBatchResults) => {
+            expect(success.overallStatus === AzureBatchResultStatus.allSuccess).toBeTruthy();
+            expect(success.results.length === 150).toBeTruthy();
+            if (success.overallStatus === AzureBatchResultStatus.allSuccess) {
+                manager.removeMany(storageTable, lotsaCars).then((delSuccess: AzureBatchResults) => {
+                    expect(delSuccess.overallStatus === AzureBatchResultStatus.allSuccess).toBeTruthy();
+                    done();
+                }).catch((delErr: AzureBatchResults) => {
+                    expect(delErr.overallStatus === AzureBatchResultStatus.allSuccess).toBeTruthy();  
+                    done();
+                });
+            }
+        }).catch((err: AzureBatchResults) => {
+            expect(err.overallStatus === AzureBatchResultStatus.allSuccess).toBeTruthy();  
+            done();
+        });
+    });
+
+    let generateLotsOfCars = (partitionName: string, amount: number): CarTest[] => {
+        let returnCars: CarTest[] = [];
+        // tslint:disable-next-line:no-increment-decrement
+        for (let i = 0; i < amount; i++) {
+            let newCar: CarTest = new CarTest();
+            newCar.partitionKey = partitionName;
+            newCar.rowKey = 'car' + i;
+            newCar.color = 'Some Color';
+            newCar.make = 'Honda';
+            newCar.model = 'Civic';
+            newCar.year = 2003;
+            newCar.dateMade = new Date();
+            newCar.turboType = undefined; // test undefined scenario
+            newCar.engine = { isPowerful: true };
+            newCar.classVersion = 1;
+            newCar.isOn = false;
+            returnCars.push(newCar);
+        }
+        
+        return returnCars;
+    };
 });

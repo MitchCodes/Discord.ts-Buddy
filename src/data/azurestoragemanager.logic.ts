@@ -38,17 +38,57 @@ export class AzureResult<T extends IAzureSavable> implements IAzureResult {
     }
 }
 
-// tslint:disable-next-line:no-stateless-class no-unnecessary-class max-classes-per-file
-export class AzureGlobalBatch {
-    public batch: TableBatch;
-    public tblService: TableService;
-    public tableName: string;
+export interface IAzureBatch {
+    currentBatch: TableBatch;
+    totalBatches: TableBatch[];
+    tblService: TableService;
+    tableName: string;
+    partitionName: string;
 }
 
-// tslint:disable-next-line:no-stateless-class no-unnecessary-class max-classes-per-file
-export class AzureInstanceBatch {
-    public batch: TableBatch;
+export class AzureBatch implements IAzureBatch {
+    public currentBatch: TableBatch;
+    public totalBatches: TableBatch[];
+    public tblService: TableService;
     public tableName: string;
+    public partitionName: string = null;
+
+    public constructor() {
+        this.totalBatches = [];
+    }
+}
+
+export class AzureBatchResult {
+    public batch: TableBatch;
+    public result: IAzureResult;
+}
+
+// tslint:disable-next-line:max-classes-per-file
+export class AzureBatchResults {
+    public results: AzureBatchResult[];
+    public overallStatus: AzureBatchResultStatus;
+
+    public constructor() {
+        this.results = [];
+    }
+
+    public getFailedTableBatches(): TableBatch[] {
+        let returnCol: TableBatch[] = [];
+
+        for (let res of this.results) {
+            if (res.result.status === AzureResultStatus.error) {
+                returnCol.push(res.batch);
+            }
+        }
+
+        return returnCol;
+    }
+}
+
+export enum AzureBatchResultStatus {
+    allError = 0,
+    partialSuccess = 1,
+    allSuccess = 2,
 }
 
 export enum AzureBatchType {
@@ -58,13 +98,13 @@ export enum AzureBatchType {
 
 // tslint:disable-next-line:no-stateless-class no-unnecessary-class max-classes-per-file
 export class AzureStorageManager<T extends IAzureSavable> {
-    private static globalBatches: AzureDictionary<AzureGlobalBatch> = {};
+    private static globalBatches: AzureDictionary<IAzureBatch> = {};
     private tblService: TableService = null;
     private azureStorageAccount: string = '';
     private azureStorageKey: string = '';
     private overrideTableService: TableService = null;
     private testType: new () => T;
-    private instanceBatches: AzureDictionary<AzureInstanceBatch> = {};
+    private instanceBatches: AzureDictionary<IAzureBatch> = {};
 
     public constructor(testType: new () => T, azureStorageAccount: string = '', 
                        azureStorageKey: string = '', overrideTableService: TableService = null) {
@@ -117,16 +157,16 @@ export class AzureStorageManager<T extends IAzureSavable> {
         return this.insertOrReplaceObj(tableName, input);
     }
 
-    public saveMany(tableName: string, input: T[]): Promise<IAzureResult> {
-        return new Promise<AzureResult<any>>((resolve : (val: AzureResult<T>) => void, reject : (val: AzureResult<any>) => void) => {
+    public saveMany(tableName: string, input: T[]): Promise<AzureBatchResults> {
+        return new Promise<AzureBatchResults>((resolve : (val: AzureBatchResults) => void, reject : (val: AzureBatchResults) => void) => {
             let batchId: string = this.newGuid();
             this.createBatch(batchId, tableName, AzureBatchType.instance);
             for (let curObj of input) {
                 this.addBatchSave(batchId, curObj, AzureBatchType.instance);
             }
-            this.executeBatch(batchId, AzureBatchType.instance).then((res: AzureResult<any>) => {
+            this.executeBatch(batchId, AzureBatchType.instance).then((res: AzureBatchResults) => {
                 resolve(res);
-            }).catch((err: AzureResult<any>) => {
+            }).catch((err: AzureBatchResults) => {
                 reject(err);
             });
         });
@@ -174,58 +214,38 @@ export class AzureStorageManager<T extends IAzureSavable> {
         });
     }
 
-    public removeMany(tableName: string, input: T[]): Promise<IAzureResult> {
-        return new Promise<AzureResult<any>>((resolve : (val: AzureResult<T>) => void, reject : (val: AzureResult<any>) => void) => {
+    public removeMany(tableName: string, input: T[]): Promise<AzureBatchResults> {
+        return new Promise<AzureBatchResults>((resolve : (val: AzureBatchResults) => void, reject : (val: AzureBatchResults) => void) => {
             let batchId: string = this.newGuid();
             this.createBatch(batchId, tableName, AzureBatchType.instance);
             for (let curObj of input) {
                 this.addBatchRemove(batchId, curObj, AzureBatchType.instance);
             }
-            this.executeBatch(batchId, AzureBatchType.instance).then((res: AzureResult<any>) => {
+            this.executeBatch(batchId, AzureBatchType.instance).then((res: AzureBatchResults) => {
                 resolve(res);
-            }).catch((err: AzureResult<any>) => {
+            }).catch((err: AzureBatchResults) => {
                 reject(err);
             });
         });
     }
 
-    public addBatchRemove(batchName: string, obj: T, batchType: AzureBatchType = AzureBatchType.instance): boolean {
+    public addBatchRemove(batchName: string, obj: T, batchType: AzureBatchType = AzureBatchType.instance): AzureResult<any> {
         return this.removeObjBatch(batchName, obj, batchType);
-    }
-
-    public getBatch(batchName: string, batchType: AzureBatchType = AzureBatchType.instance): TableBatch {
-        switch (batchType) {
-            case AzureBatchType.global:
-                let azureGlobalBatch: AzureGlobalBatch = AzureStorageManager.globalBatches[batchName];
-                if (azureGlobalBatch !== undefined && azureGlobalBatch !== null) {
-                    return azureGlobalBatch.batch;
-                } else {
-                    return null;
-                }
-            case AzureBatchType.instance:
-                let azureInstanceBatch: AzureInstanceBatch = this.instanceBatches[batchName];
-                if (azureInstanceBatch !== undefined && azureInstanceBatch !== null) {
-                    return azureInstanceBatch.batch;
-                } else {
-                    return null;
-                }
-            default:
-                return null;
-        }
-    }
+    }    
 
     public createBatch(batchName: string, tableName: string, batchType: AzureBatchType = AzureBatchType.instance): void {
         switch (batchType) {
             case AzureBatchType.global:
-                let newAzureGlobalBatch: AzureGlobalBatch = new AzureGlobalBatch();
-                newAzureGlobalBatch.batch = new TableBatch();
+                let newAzureGlobalBatch: AzureBatch = new AzureBatch();
+                newAzureGlobalBatch.currentBatch = new TableBatch();
                 newAzureGlobalBatch.tblService = this.tblService;
                 newAzureGlobalBatch.tableName = tableName;
                 AzureStorageManager.globalBatches[batchName] = newAzureGlobalBatch;
                 break;
             case AzureBatchType.instance:
-                let newAzureInstanceBatch: AzureInstanceBatch = new AzureInstanceBatch();
-                newAzureInstanceBatch.batch = new TableBatch();
+                let newAzureInstanceBatch: AzureBatch = new AzureBatch();
+                newAzureInstanceBatch.currentBatch = new TableBatch();
+                newAzureInstanceBatch.tblService = this.tblService;
                 newAzureInstanceBatch.tableName = tableName;
                 this.instanceBatches[batchName] = newAzureInstanceBatch;
                 break;
@@ -233,61 +253,62 @@ export class AzureStorageManager<T extends IAzureSavable> {
         }
     }
 
-    public executeBatch(batchName: string, batchType: AzureBatchType = AzureBatchType.instance): Promise<AzureResult<any>> {
-        // tslint:disable-next-line:promise-must-complete
-        return new Promise<AzureResult<any>>((resolve : (val: AzureResult<any>) => void, reject : (val: AzureResult<any>) => void) => {
-            let batchToUse: TableBatch = null;
-            let tblServiceToUse: TableService = null;
-            let tblToUse: string = null;
+    public executeBatch(batchName: string, batchType: AzureBatchType = AzureBatchType.instance): Promise<AzureBatchResults> {
+        return new Promise<AzureBatchResults>((resolve : (val: AzureBatchResults) => void, reject : (val: AzureBatchResults) => void) => {
+            let azureBatch: AzureBatch = null;
             switch (batchType) {
                 case AzureBatchType.global:
-                    let azureGlobalBatch: AzureGlobalBatch = AzureStorageManager.globalBatches[batchName];
-                    if (azureGlobalBatch !== undefined && azureGlobalBatch !== null) {
-                        batchToUse = azureGlobalBatch.batch;
-                        tblServiceToUse = azureGlobalBatch.tblService;
-                        tblToUse = azureGlobalBatch.tableName;
-                    }
+                    let azureGlobalBatch: AzureBatch = AzureStorageManager.globalBatches[batchName];
+                    azureBatch = azureGlobalBatch;
                     break;
                 case AzureBatchType.instance:
-                    let azureInstanceBatch: AzureInstanceBatch = this.instanceBatches[batchName];
-                    if (azureInstanceBatch !== undefined && azureInstanceBatch !== null) {
-                        batchToUse = azureInstanceBatch.batch;
-                        tblServiceToUse = this.tblService;
-                        tblToUse = azureInstanceBatch.tableName;
-                    }
+                    let azureInstanceBatch: AzureBatch = this.instanceBatches[batchName];
+                    azureBatch = azureInstanceBatch;
                     break;
                 default:
             }
 
-            if (batchToUse !== null && tblServiceToUse !== null && tblToUse !== null) {
-                tblServiceToUse.executeBatch(tblToUse, batchToUse, (err: any, result: any, response: any) => {
-                    if (!err) {
-                        let batchSuccessResult: AzureResult<any> = new AzureResult<any>();
-                        batchSuccessResult.status = AzureResultStatus.success;
-                        batchSuccessResult.message = 'Successfully executed batch';
-                        batchSuccessResult.data = result;
-                        this.removeBatch(batchName, batchType);
-                        resolve(batchSuccessResult);
-                    } else {
-                        let batchErrResult: AzureResult<any> = new AzureResult<any>();
-                        batchErrResult.error = new Error(err);
-                        batchErrResult.message = err;
-                        batchErrResult.status = AzureResultStatus.error;
-                        reject(batchErrResult);
-                    }
+            if (azureBatch !== null) {
+                azureBatch.totalBatches.push(azureBatch.currentBatch);
+                let newTableBatchesCol: TableBatch[] = [];
+                for (let curBatch of azureBatch.totalBatches) {
+                    newTableBatchesCol.push(curBatch);
+                }
+                this.executeBatches(newTableBatchesCol, azureBatch.tblService, 
+                                    azureBatch.tableName, null).then((res: AzureBatchResults) => {
+                    resolve(res);
                 });
             } else {
-                let nullBatchOrTblServResult: AzureResult<any> = new AzureResult<any>();
-                nullBatchOrTblServResult.status = AzureResultStatus.error;
-                nullBatchOrTblServResult.message = 'Error: Table Batch, Table Service or Table is null.';
-                nullBatchOrTblServResult.error = new Error('Error: Table Batch, Table Service or Table is null.');
+                let nullBatchOrTblServResult: AzureBatchResults = new AzureBatchResults();
+                nullBatchOrTblServResult.overallStatus = AzureBatchResultStatus.allError;
                 reject(nullBatchOrTblServResult);
             }
         });
     }
 
-    public addBatchSave(batchName: string, obj: T, batchType: AzureBatchType = AzureBatchType.instance): boolean {
+    public addBatchSave(batchName: string, obj: T, batchType: AzureBatchType = AzureBatchType.instance): AzureResult<any> {
         return this.insertOrReplaceObjBatch(batchName, obj, batchType);
+    }
+
+    private getCurrentBatch(batchName: string, batchType: AzureBatchType = AzureBatchType.instance): AzureBatch {
+        switch (batchType) {
+            case AzureBatchType.global:
+                let azureGlobalBatch: AzureBatch = AzureStorageManager.globalBatches[batchName];
+                if (azureGlobalBatch !== undefined && azureGlobalBatch !== null) {
+                    return azureGlobalBatch;
+                } else {
+                    return null;
+                }
+            case AzureBatchType.instance:
+                let azureInstanceBatch: AzureBatch = this.instanceBatches[batchName];
+                if (azureInstanceBatch !== undefined && azureInstanceBatch !== null) {
+                    return azureInstanceBatch;
+                } else {
+                    return null;
+                }
+            default:
+                return null;
+        }
     }
 
     private removeBatch(batchName: string, batchType: AzureBatchType = AzureBatchType.instance): void {
@@ -354,6 +375,64 @@ export class AzureStorageManager<T extends IAzureSavable> {
         });
     }
 
+    private executeBatches(allBatches: TableBatch[], tblService: TableService, tableName: string, 
+                           azureResult: AzureBatchResults): Promise<AzureBatchResults> {
+        return new Promise<AzureBatchResults>((resolve : (val: AzureBatchResults) => void, reject : (val: AzureBatchResults) => void) => {
+            if (tableName !== undefined && tableName !== null && tblService !== undefined 
+                && tblService !== null && allBatches !== undefined && allBatches !== null) {
+
+                if (allBatches.length === 0) {
+                    let allError: boolean = true;
+                    let allSuccess: boolean = true;
+                    for (let curBatchRes of azureResult.results) {
+                        if (curBatchRes.result.status === AzureResultStatus.error) {
+                            allSuccess = false;
+                        }
+                        if (curBatchRes.result.status === AzureResultStatus.success) {
+                            allError = false;
+                        }
+                    }
+                    if (allError) {
+                        azureResult.overallStatus = AzureBatchResultStatus.allError;
+                    } else if (allSuccess) {
+                        azureResult.overallStatus = AzureBatchResultStatus.allSuccess;
+                    } else {
+                        azureResult.overallStatus = AzureBatchResultStatus.partialSuccess;
+                    }
+                    resolve(azureResult);
+                }
+
+                let currentBatch: TableBatch = allBatches.pop();
+                tblService.executeBatch(tableName, currentBatch, (err: any, result: any, response: any) => {
+                    let batchResult: AzureResult<any> = new AzureResult<any>();
+                    let newAzureBatchResult: AzureBatchResult = new AzureBatchResult();
+                    if (!err) {
+                        batchResult.status = AzureResultStatus.success;
+                        batchResult.message = 'Successfully executed batch';
+                        batchResult.data = result;
+                    } else {
+                        batchResult.error = new Error(err);
+                        batchResult.message = err;
+                        batchResult.status = AzureResultStatus.error;
+                    }
+                    newAzureBatchResult.batch = currentBatch;
+                    newAzureBatchResult.result = batchResult;
+                    let passInAzureResults: AzureBatchResults = null;
+                    if (azureResult !== null && azureResult !== undefined) {
+                        passInAzureResults = azureResult;
+                    } else {
+                        passInAzureResults = new AzureBatchResults();
+                    }
+                    passInAzureResults.results.push(newAzureBatchResult);
+
+                    this.executeBatches(allBatches, tblService, tableName, passInAzureResults).then((res: AzureBatchResults) => {
+                        resolve(res);
+                    });
+                });
+            }
+        });
+    }
+
     private updateModel(inputObject: Object): void {
         let newModel: T = this.getNew();
         let inputVersion: number = -1;
@@ -392,16 +471,35 @@ export class AzureStorageManager<T extends IAzureSavable> {
         });
     }
 
-    private insertOrReplaceObjBatch(batchName: string, obj: T, batchType: AzureBatchType = AzureBatchType.instance): boolean { 
-        let batch: TableBatch = this.getBatch(batchName, batchType);
-        if (batch !== undefined && batch !== null) {
-            let azureObj = this.convertToAzureObj(obj);
-            batch.insertOrReplaceEntity(azureObj);
+    private insertOrReplaceObjBatch(batchName: string, obj: T, batchType: AzureBatchType = AzureBatchType.instance): AzureResult<any> { 
+        let result: AzureResult<any> = new AzureResult<any>();
+        let batch: AzureBatch = this.getCurrentBatch(batchName, batchType);
+        if (batch !== undefined && batch !== null && batch.currentBatch !== undefined && batch.currentBatch !== null) {
+            if (batch.partitionName === null) {
+                batch.partitionName = obj.partitionKey;
+            }
+            if (batch.partitionName === obj.partitionKey) {
+                let azureObj = this.convertToAzureObj(obj);
+                if (batch.currentBatch.size() >= 100) {
+                    batch.totalBatches.push(batch.currentBatch);
+                    batch.currentBatch = new TableBatch();
+                }
+                batch.currentBatch.insertOrReplaceEntity(azureObj);
 
-            return true;
+                result.message = 'Successfully added insert/update to batch.';
+                result.status = AzureResultStatus.success;
+            } else {
+                result.error = new Error('Partition key must match.');
+                result.message = 'Partition key must match. Matching keys: ' + batch.partitionName + ' and ' + obj.partitionKey;
+                result.status = AzureResultStatus.error;
+            }            
+        } else {
+            result.error = new Error('Batch is undefined somehow.');
+            result.message = 'Batch is undefined somehow.';
+            result.status = AzureResultStatus.error;
         }
 
-        return false;
+        return result;
     }
 
     private removeObj(tableName: string, obj: T): Promise<IAzureResult> {
@@ -422,16 +520,35 @@ export class AzureStorageManager<T extends IAzureSavable> {
         });
     }
 
-    private removeObjBatch(batchName: string, obj: T, batchType: AzureBatchType = AzureBatchType.instance): boolean {
-        let batch: TableBatch = this.getBatch(batchName, batchType);
-        if (batch !== undefined && batch !== null) {
-            let azureObj = this.convertToAzureObjOnlyKeys(obj);
-            batch.deleteEntity(azureObj);
+    private removeObjBatch(batchName: string, obj: T, batchType: AzureBatchType = AzureBatchType.instance): AzureResult<any> {
+        let result: AzureResult<any> = new AzureResult<any>();
+        let batch: AzureBatch = this.getCurrentBatch(batchName, batchType);
+        if (batch !== undefined && batch !== null && batch.currentBatch !== undefined && batch.currentBatch !== null) {
+            if (batch.partitionName === null) {
+                batch.partitionName = obj.partitionKey;
+            }
+            if (batch.partitionName === obj.partitionKey) {
+                let azureObj = this.convertToAzureObjOnlyKeys(obj);
+                if (batch.currentBatch.size() >= 100) {
+                    batch.totalBatches.push(batch.currentBatch);
+                    batch.currentBatch = new TableBatch();
+                }
+                batch.currentBatch.deleteEntity(azureObj);
 
-            return true;
+                result.message = 'Successfully added remove to batch.';
+                result.status = AzureResultStatus.success;
+            } else {
+                result.error = new Error('Partition key must match.');
+                result.message = 'Partition key must match. Matching keys: ' + batch.partitionName + ' and ' + obj.partitionKey;
+                result.status = AzureResultStatus.error;
+            }
+        } else {
+            result.error = new Error('Batch is undefined somehow.');
+            result.message = 'Batch is undefined somehow.';
+            result.status = AzureResultStatus.error;
         }
 
-        return false;
+        return result;
     }
 
     private convertToAzureObj(obj: T): Object {
