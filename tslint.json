@@ -24,6 +24,7 @@
     "no-any": false,
     "no-this-assignment": false,
     "no-var-self": false,
+    "no-debugger": false,
     "interface-name": false, // https://github.com/Microsoft/TypeScript/wiki/Coding-guidelines <-- interfaces should not start with I
     "trailing-comma": [ // https://palantir.github.io/tslint/rules/trailing-comma/
       true,
