@@ -21,13 +21,13 @@
     "ts-jest": "~22.4.1"
   },
   "scripts": {
-    "clean": "rimraf coverage build tmp",
+    "clean": "rimraf coverage build tmp logs",
     "build": "webpack --config webpack.dev.js",
     "build-prod": "webpack --config webpack.prod.js",
     "watch": "webpack --config webpack.dev.js --watch",
     "lint": "tslint -t stylish --project \"tsconfig.json\"",
     "lint-autofix": "tslint -t stylish --fix --project \"tsconfig.json\"",
-    "pretest": "npm run lint",
+    "pretest": "npm run lint --force",
     "test": "npm run test-only",
     "test-only": "jest --coverage",
     "test:watch": "jest --watch",
