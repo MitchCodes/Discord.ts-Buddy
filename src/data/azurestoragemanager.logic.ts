@@ -105,6 +105,7 @@ export class AzureStorageManager<T extends IAzureSavable> {
     private overrideTableService: TableService = null;
     private testType: new () => T;
     private instanceBatches: AzureDictionary<IAzureBatch> = {};
+    private maxBatchNumber: number = 50;
 
     public constructor(testType: new () => T, azureStorageAccount: string = '', 
                        azureStorageKey: string = '', overrideTableService: TableService = null) {
@@ -225,6 +226,30 @@ export class AzureStorageManager<T extends IAzureSavable> {
                 resolve(res);
             }).catch((err: AzureBatchResults) => {
                 reject(err);
+            });
+        });
+    }
+
+    public removeByQuery(tableName: string, query: TableQuery): Promise<AzureBatchResults> {
+        return new Promise<AzureBatchResults>((resolve : (val: AzureBatchResults) => void, reject : (val: AzureBatchResults) => void) => {
+            let result: AzureBatchResults = new AzureBatchResults();
+            this.getByQuery(tableName, query).then((dataQuerySuccess: AzureResult<T>) => {
+                if (dataQuerySuccess.data.length > 0) {
+                    this.removeMany(tableName, dataQuerySuccess.data).then((dataRemoveSuccess: AzureBatchResults) => {
+                        resolve(dataRemoveSuccess);
+                    }).catch((dataRemoveErr: AzureBatchResults) => {
+                        reject(dataRemoveErr);
+                    });
+                } else {
+                    result.overallStatus = AzureBatchResultStatus.allSuccess;
+                    resolve(result);
+                }
+            }).catch((dataQueryErr: AzureResult<T>) => {
+                let azureBatchResult: AzureBatchResult = new AzureBatchResult();
+                azureBatchResult.result = dataQueryErr;
+                result.results.push(azureBatchResult);
+                result.overallStatus = AzureBatchResultStatus.allError;
+                reject(result);
             });
         });
     }
@@ -480,7 +505,7 @@ export class AzureStorageManager<T extends IAzureSavable> {
             }
             if (batch.partitionName === obj.partitionKey) {
                 let azureObj = this.convertToAzureObj(obj);
-                if (batch.currentBatch.size() >= 100) {
+                if (batch.currentBatch.size() >= this.maxBatchNumber) {
                     batch.totalBatches.push(batch.currentBatch);
                     batch.currentBatch = new TableBatch();
                 }
@@ -529,7 +554,7 @@ export class AzureStorageManager<T extends IAzureSavable> {
             }
             if (batch.partitionName === obj.partitionKey) {
                 let azureObj = this.convertToAzureObjOnlyKeys(obj);
-                if (batch.currentBatch.size() >= 100) {
+                if (batch.currentBatch.size() >= this.maxBatchNumber) {
                     batch.totalBatches.push(batch.currentBatch);
                     batch.currentBatch = new TableBatch();
                 }

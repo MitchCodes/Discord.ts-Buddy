@@ -94,33 +94,23 @@ describe('azure-storage-manager-tests', () => {
     // });
 
     test('can convert to an azure object', () => {
-        logger.info('Converted TO Azure Storage Obj');
-        logger.info(JSON.stringify(convObject));
         expect(convObject !== null).toBeTruthy();
         // tslint:disable-next-line:no-string-literal
         expect(convObject['PartitionKey'] !== null).toBeTruthy();
     });
 
     test('can convert from an azure object', () => {
-        logger.info('--------------------------------------');
-        logger.info('Converted FROM Azure Storage Obj');
-        logger.info(JSON.stringify(convertedTestModel));
         expect(convertedTestModel !== null).toBeTruthy();
         expect(convertedTestModel.partitionKey !== null).toBeTruthy();
     });
 
     test('original and converted from are same', () => {
-        logger.info('--------------------------------------');
-        logger.info('Original vs converted from');
-        logger.info(JSON.stringify(testModel));
-        logger.info(JSON.stringify(convertedTestModel));
         let modelComparer: ModelComparer<CarTest> = new ModelComparer<CarTest>();
         let areSame = modelComparer.propertiesAreEqualToFirst(testModel, convertedTestModel, true);
-        // tslint:disable-next-line:triple-equals
         expect(areSame).toBeTruthy();
     });
 
-    test('can use functions', () => {
+    test('can use functions after type conversion', () => {
         expect(convertedTestModel.isOn).not.toBeTruthy();
         convertedTestModel.turnOn();
         expect(convertedTestModel.isOn).toBeTruthy();
@@ -142,7 +132,7 @@ describe('azure-storage-manager-tests', () => {
             expect(success !== null).toBeTruthy();
             done();
         }).catch((err: IAzureResult) => {
-            expect(err.status !== AzureResultStatus.error).toBeTruthy();
+            expect(false).toBeTruthy();
             done();
         });
     });
@@ -187,46 +177,58 @@ describe('azure-storage-manager-tests', () => {
                             done();
                         });
                     }).catch((dataQueryErr: AzureResult<CarTest>) => {
-                        expect(dataQueryErr.status !== AzureResultStatus.error).toBeTruthy();
+                        expect(false).toBeTruthy();
                         done();
                     });
-                    done();
                 }).catch((dataErrPartKey: AzureResult<CarTest>) => {
-                    expect(dataErrPartKey.status !== AzureResultStatus.error).toBeTruthy();
+                    expect(false).toBeTruthy();
                     done();
                 });
             }).catch((dataErr: AzureResult<CarTest>) => {
-                expect(dataErr.status !== AzureResultStatus.error).toBeTruthy();
+                expect(false).toBeTruthy();
                 done();
             });
         }).catch((err: IAzureResult) => {
-            expect(err.status !== AzureResultStatus.error).toBeTruthy();
+            expect(false).toBeTruthy();
             done();
         });
         
     });
 
-    test('batch insert, batch remove', (done: any) => {
-        let lotsaCars: CarTest[] = generateLotsOfCars('batchTest1', 150);
+    test('remove all, batch insert, batch remove', (done: any) => {
+        let lotsaCars: CarTest[] = generateLotsOfCars('batchTest1', 105);
         console.log('Cars generated: ' + lotsaCars.length);
 
+        let query: TableQuery = new TableQuery().where('make eq ?', 'Honda').and('PartitionKey eq ?', 'batchTest1');
         let manager: AzureStorageManager<CarTest> = new AzureStorageManager<CarTest>(CarTest, storageAcct, storageKey);
         //let managerAny: any = <any>manager;
         manager.initializeConnection();
-        manager.saveMany(storageTable, lotsaCars).then((success: AzureBatchResults) => {
-            expect(success.overallStatus === AzureBatchResultStatus.allSuccess).toBeTruthy();
-            expect(success.results.length === 150).toBeTruthy();
-            if (success.overallStatus === AzureBatchResultStatus.allSuccess) {
-                manager.removeMany(storageTable, lotsaCars).then((delSuccess: AzureBatchResults) => {
-                    expect(delSuccess.overallStatus === AzureBatchResultStatus.allSuccess).toBeTruthy();
-                    done();
-                }).catch((delErr: AzureBatchResults) => {
-                    expect(delErr.overallStatus === AzureBatchResultStatus.allSuccess).toBeTruthy();  
-                    done();
-                });
-            }
-        }).catch((err: AzureBatchResults) => {
-            expect(err.overallStatus === AzureBatchResultStatus.allSuccess).toBeTruthy();  
+        manager.removeByQuery(storageTable, query).then((removeQuerySuccess: AzureBatchResults) => {
+            expect(removeQuerySuccess.overallStatus === AzureBatchResultStatus.allSuccess).toBeTruthy();
+            manager.saveMany(storageTable, lotsaCars).then((success: AzureBatchResults) => {
+                expect(success.overallStatus === AzureBatchResultStatus.allSuccess).toBeTruthy();
+                expect(success.results.length === 3).toBeTruthy();
+                if (success.overallStatus === AzureBatchResultStatus.allSuccess) {
+                    manager.getByQuery(storageTable, query).then((dataQuerySuccess: AzureResult<CarTest>) => {
+                        expect(dataQuerySuccess.data.length === 105).toBeTruthy();
+                        manager.removeMany(storageTable, lotsaCars).then((delSuccess: AzureBatchResults) => {
+                            expect(delSuccess.overallStatus === AzureBatchResultStatus.allSuccess).toBeTruthy();
+                            done();
+                        }).catch((delErr: AzureBatchResults) => {
+                            expect(false).toBeTruthy();  
+                            done();
+                        });
+                    }).catch((dataQueryErr: AzureResult<CarTest>) => {
+                        expect(false).toBeTruthy();
+                        done();
+                    });
+                }
+            }).catch((err: AzureBatchResults) => {
+                expect(false).toBeTruthy();  
+                done();
+            });
+        }).catch((removeQueryErr: AzureBatchResults) => {
+            expect(false).toBeTruthy();
             done();
         });
     });

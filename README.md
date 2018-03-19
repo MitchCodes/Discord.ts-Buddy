@@ -10,6 +10,112 @@ This is a bot using Discord.js written in TypeScript.
 
 # IDE Suggestion
 
+Visual Studio Code
+
+launch.json example:
+
+```json
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Program",
+            "program": "${workspaceFolder}/src\\main.ts",
+            "outFiles": [
+               "${workspaceFolder}/build/**/*.js"
+            ],
+            "sourceMaps": true
+        },
+        {
+            "name": "Debug Jest Tests",
+            "type": "node",
+            "request": "launch",
+            "port":9222,
+            "cwd": "${workspaceRoot}",
+            "runtimeArgs": ["--inspect=9222",
+                "${workspaceRoot}/node_modules/jest/bin/jest.js",
+                "--config",
+                "${workspaceRoot}/jest.config.js",
+                "--runInBand",
+                "--coverage",
+                "false",
+                "--no-cache"],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "sourceMaps": true,
+            "outFiles": [
+                "${workspaceFolder}/build/**/*.js",
+                "${workspaceFolder}/__tests__/**/*"
+            ],
+            "env":{
+                "NO_WEBPACK_MIDDLEWARE": "false"
+            }
+        },
+        {
+            "name": "Debug Jest Azure Tests",
+            "type": "node",
+            "request": "launch",
+            "port":9222,
+            "cwd": "${workspaceRoot}",
+            "preLaunchTask": "build",
+            "runtimeArgs": ["--inspect=9222",
+                "${workspaceRoot}/node_modules/jest/bin/jest.js",
+                "--config",
+                "${workspaceRoot}/jest/jest.azure.config.js",
+                "--runInBand",
+                "--coverage",
+                "false",
+                "--rootDir",
+                "./",
+                "--no-cache"],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "sourceMaps": true,
+            "outFiles": [
+                "${workspaceFolder}/build/**/*.js",
+                "${workspaceFolder}/__tests__/**/*"
+            ],
+            "env":{
+                "NO_WEBPACK_MIDDLEWARE": "false"
+            }
+        },
+        {
+            "name": "Debug Jest Bots Tests",
+            "type": "node",
+            "request": "launch",
+            "port":9222,
+            "cwd": "${workspaceRoot}",
+            "preLaunchTask": "build",
+            "runtimeArgs": ["--inspect=9222",
+                "${workspaceRoot}/node_modules/jest/bin/jest.js",
+                "--config",
+                "${workspaceRoot}/jest/jest.azure.config.js",
+                "--runInBand",
+                "--coverage",
+                "false",
+                "--rootDir",
+                "./",
+                "--no-cache"],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "sourceMaps": true,
+            "outFiles": [
+                "${workspaceFolder}/build/**/*.js",
+                "${workspaceFolder}/__tests__/**/*"
+            ],
+            "env":{
+                "NO_WEBPACK_MIDDLEWARE": "false"
+            }
+        }
+    ]
+}
+```
+
 # node-typescript-boilerplate
 
 Minimalistic boilerplate to jump-start a [Node.js][nodejs] project in [TypeScript][typescript] [2.6][typescript-26].
