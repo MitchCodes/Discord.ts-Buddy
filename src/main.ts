@@ -3,6 +3,7 @@ import { MainController } from './logic/main.controller';
 // tslint:disable-next-line:no-import-side-effect
 import 'winston-daily-rotate-file';
 import * as nconf from 'nconf';
+import { MultiGuildBot } from './logic/bots/multi-guild-bot';
 
 // Configurations
 nconf.argv().env();

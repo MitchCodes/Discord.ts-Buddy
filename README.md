@@ -1,24 +1,92 @@
-## Need to do
+# Discord.ts-Buddy
 
-Update this readme, it is still from the boilerplate.
+## Disclaimer
 
-# Discord Team Channel Splitter Bot
+This package is developed for using [TypeScript](http://www.typescriptlang.org/) in Node. Some of the below features may not be very helpful when working in a purely JavaScript environment.
 
-This is a bot using Discord.js written in TypeScript.
+## About
 
-# Features
+The purpose of this package is to provide code helpers to speed up the development time of developing Discord bots using [Discord.js](https://discord.js.org). There are a number of common features and requirements that most bots have such as commands and being able to auto-restart. The helpers this package provides intend to make it faster for bot developers to get to what they're good at: actually adding features.
 
-# IDE Suggestion
+Not only is this GitHub repository available on npm as a package that you can add to your project but it is also available as an example of how you can setup your bot's development environment with TypeScript, webpack and unit testing using Jest.
 
-Visual Studio Code
+## Requirements
 
-launch.json example:
+>To-do... a sad day indeed.
+
+## Usage
+
+>To-do :(.... I need to push stuff to npm and try using it in another package before I write this out.
+
+## Helper Features
+
+* Bot manager that handles auto-restarting for you.
+* Command parser using the command design pattern that allows you to create command classes and plug them into bots.
+* A basic permission system to assign permissions to commands.
+* A fleshed-out multi-guild bot that you can extend and bend to your will that has features such as:
+    * Status tracking.
+    * Command parser logic to easily plug in commands with permissions.
+* A basic messenger service that will send out messages using an embed look-and-feel (as of this moment).
+* A GuildCollection generic class that acts as a dictionary for any kind of object using a guild as a key.
+* An Azure Storage Manager generic class that makes life much easier when trying to use the JavaScript version of Azure Table Storage.
+    * Definitely considered making this a separate package so you get two for one here if you use Azure Table Storage!
+
+## Example Repository Features
+
+Here are the features that this repository has that I think could be useful as an example:
+
+* Fully-featured package.json with every necessary Discord.js dependency for production.
+* All code written in TypeScript.
+* Webpack for building the application for deployments
+* Optional [configuration file setup](#configuration-file-setup) that works together with webpack when building to development and production.
+* Dockerfile _(coming soon!)_ for creating an image to easily spin up a container with the bot.
+* Unit tests using Jest
+    * Separated jest configuration files to allow different commands for testing. This was done because the Azure and Discord.js tests require network access and configuration.
+
+## Configuration File Setup
+
+This section is only relevant if you are trying to use this repository as a boiler-plate.
+
+There are three optional files that you can create in the root folder next to package.json and the like:
+* _config.common.json_
+    * Necessary to have if you want to have a dev or prod specific config file.
+* _config.dev.json_
+* _config.prod.json_
+
+On build, webpack will take the config.common.json file (if it exists) and merge it with the appropriate dev or prod file (if they exist) depending on whether you built with `npm run build` or `npm run build-prod`.
+
+If you use this repository and want to run Discord.js and Azure unit tests using the associated commands, configuration for them will be necessary. This configuration would have to be put in the _config.common.json_ file. Here is an example of what a configuration for use with the unit tests would look like:
 
 ```json
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "test": {
+        "bots": {
+            "mainBotToken": "<token here>",
+            "secondBotToken": "<token here>",
+            "testDiscordGuildId": "<id here>",
+            "testDiscordVoiceChannelName": "<channel name (such as 'General') here>"
+        },
+        "azure": {
+            "testAccount": "<test azure table storage account name>",
+            "testAccountKey": "<test azure table storage account key>",
+            "testTable": "<test azure table storage table name>"
+        }
+    }
+}
+```
+
+## IDE Notes
+
+This was developed using Visual Studio Code so that is the one that I will talk about although any IDE would work.
+
+### Visual Studio Code
+
+The jest extension is definitely helpful. The launch.json file was tricky to get working with Jest so below there is an example of the one that is working well for me.
+
+#### _launch.json example:_
+
+```json
+{
     "version": "0.2.0",
     "configurations": [
         {
@@ -55,143 +123,7 @@ launch.json example:
             "env":{
                 "NO_WEBPACK_MIDDLEWARE": "false"
             }
-        },
-        {
-            "name": "Debug Jest Azure Tests",
-            "type": "node",
-            "request": "launch",
-            "port":9222,
-            "cwd": "${workspaceRoot}",
-            "preLaunchTask": "build",
-            "runtimeArgs": ["--inspect=9222",
-                "${workspaceRoot}/node_modules/jest/bin/jest.js",
-                "--config",
-                "${workspaceRoot}/jest/jest.azure.config.js",
-                "--runInBand",
-                "--coverage",
-                "false",
-                "--rootDir",
-                "./",
-                "--no-cache"],
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen",
-            "sourceMaps": true,
-            "outFiles": [
-                "${workspaceFolder}/build/**/*.js",
-                "${workspaceFolder}/__tests__/**/*"
-            ],
-            "env":{
-                "NO_WEBPACK_MIDDLEWARE": "false"
-            }
-        },
-        {
-            "name": "Debug Jest Bots Tests",
-            "type": "node",
-            "request": "launch",
-            "port":9222,
-            "cwd": "${workspaceRoot}",
-            "preLaunchTask": "build",
-            "runtimeArgs": ["--inspect=9222",
-                "${workspaceRoot}/node_modules/jest/bin/jest.js",
-                "--config",
-                "${workspaceRoot}/jest/jest.azure.config.js",
-                "--runInBand",
-                "--coverage",
-                "false",
-                "--rootDir",
-                "./",
-                "--no-cache"],
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen",
-            "sourceMaps": true,
-            "outFiles": [
-                "${workspaceFolder}/build/**/*.js",
-                "${workspaceFolder}/__tests__/**/*"
-            ],
-            "env":{
-                "NO_WEBPACK_MIDDLEWARE": "false"
-            }
         }
     ]
 }
 ```
-
-# node-typescript-boilerplate
-
-Minimalistic boilerplate to jump-start a [Node.js][nodejs] project in [TypeScript][typescript] [2.6][typescript-26].
-
-Provides a basic template, "batteries included":
-
-+ [TypeScript][typescript] [2.6][typescript-26] to ES6 transpilation,
-+ [TSLint][tslint] 5.x with [Microsoft recommended rules][tslint-microsoft-contrib],
-+ [Jest][jest] unit testing and code coverage,
-+ Type definitions for Node.js v8.x and Jest,
-+ [NPM scripts for common operations](#available-scripts),
-+ a simple example of TypeScript code and unit test,
-+ .editorconfig for consistent file format.
-
-## Quick start
-
-This project is intended to be used with v8.9 (LTS Carbon) release of [Node.js][nodejs] or newer and [NPM][npm]. Make sure you have those installed. Then just type following commands:
-
-```sh
-git clone https://github.com/jsynowiec/node-typescript-boilerplate
-cd node-typescript-boilerplate
-npm install
-```
-
-or just download and unzip current `master` branch:
-
-```sh
-wget https://github.com/jsynowiec/node-typescript-boilerplate/archive/master.zip -O node-typescript-boilerplate
-unzip node-typescript-boilerplate.zip && rm node-typescript-boilerplate.zip
-```
-
-Now start adding your code in the `src` and unit tests in the `__tests__` directories. Have fun and build amazing things 🚀
-
-### Unit tests in JavaScript
-
-Writing unit tests in TypeScript can sometimes be troublesome and confusing. Especially when mocking dependencies and using spies.
-
-This is **optional**, but if you want to learn how to write JavaScript tests for TypeScript modules, read the [corresponding wiki page][wiki-js-tests].
-
-## Available scripts
-
-+ `clean` - remove coverage data, Jest cache and transpiled files,
-+ `build` - transpile TypeScript to ES6,
-+ `watch` - interactive watch mode to automatically transpile source files, 
-+ `lint` - lint source files and tests,
-+ `test` - run tests,
-+ `test:watch` - interactive watch mode to automatically re-run tests
-
-## Alternative
-
-As an alternative to TypeScript, you can try my [Node.js Flow boilerplate][flow-boilerplate]. It's basically the same but with ES6, async/await, Flow type checking and ESLint.
-
-
-[dependencies-badge]: https://david-dm.org/jsynowiec/node-typescript-boilerplate/dev-status.svg
-[dependencies]: https://david-dm.org/jsynowiec/node-typescript-boilerplate?type=dev
-[nodejs-badge]: https://img.shields.io/badge/node->=%208.9-blue.svg
-[nodejs]: https://nodejs.org/dist/latest-v6.x/docs/api/
-[npm-badge]: https://img.shields.io/badge/npm->=%205.5.1-blue.svg
-[npm]: https://docs.npmjs.com/
-[travis-badge]: https://travis-ci.org/jsynowiec/node-typescript-boilerplate.svg?branch=master
-[travis-ci]: https://travis-ci.org/jsynowiec/node-typescript-boilerplate
-[typescript]: https://www.typescriptlang.org/
-[typescript-26]: https://github.com/Microsoft/TypeScript/wiki/What's-new-in-TypeScript#typescript-26
-[license-badge]: https://img.shields.io/badge/license-APLv2-blue.svg
-[prs-badge]: https://img.shields.io/badge/PRs-welcome-brightgreen.svg
-[prs]: http://makeapullrequest.com
-[donate-badge]: https://img.shields.io/badge/$-support-green.svg
-[donate]: http://bit.ly/donate-js
-[github-watch-badge]: https://img.shields.io/github/watchers/jsynowiec/node-typescript-boilerplate.svg?style=social
-[github-watch]: https://github.com/jsynowiec/node-typescript-boilerplate/watchers
-[github-star-badge]: https://img.shields.io/github/stars/jsynowiec/node-typescript-boilerplate.svg?style=social
-[github-star]: https://github.com/jsynowiec/node-typescript-boilerplate/stargazers
-[twitter]: https://twitter.com/intent/tweet?text=Check%20out%20this%20Node.js%20TypeScript%20boilerplate!%20https://github.com/jsynowiec/node-typescript-boilerplate%20%F0%9F%91%8D
-[twitter-badge]: https://img.shields.io/twitter/url/https/jsynowiec/node-typescript-boilerplate.svg?style=social
-[jest]: https://facebook.github.io/jest/
-[tslint]: https://palantir.github.io/tslint/
-[tslint-microsoft-contrib]: https://github.com/Microsoft/tslint-microsoft-contrib
-[flow-boilerplate]: https://github.com/jsynowiec/node-flowtype-boilerplate
-[wiki-js-tests]: https://github.com/jsynowiec/node-typescript-boilerplate/wiki/Unit-tests-in-plain-JavaScript

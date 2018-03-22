@@ -20,8 +20,8 @@ export class CommandPermissionRequirement {
 }
 
 export class CommandPermissionRequirementSettings {
-    public allRequirements: CommandPermissionRequirement[];
-    public anyRequirements: CommandPermissionRequirement[];
+    public allRequirements: CommandPermissionRequirement[] = [];
+    public anyRequirements: CommandPermissionRequirement[] = [];
 }
 
 export interface ICommandPermissions {

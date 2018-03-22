@@ -1,7 +1,7 @@
 {
-  "name": "discord-teamchannelsplitter-bot",
-  "version": "0.0.0",
-  "description": "Discord bot that helps communication organization by being a buffer between multiple channels to allow cross-channel communication.",
+  "name": "discord.ts-buddy",
+  "version": "0.0.1",
+  "description": "Discord.js with TypeScript example boiler-plate and helper classes.",
   "engineStrict": true,
   "engines": {
     "node": ">= 8.9.0"
@@ -38,12 +38,12 @@
   "author": "Mitch Chiles <mitchchiles@gmail.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jsynowiec/node-typescript-boilerplate.git"
+    "url": "https://github.com/MitchCodes/Discord.ts-Buddy.git"
   },
   "bugs": {
-    "url": "https://github.com/jsynowiec/node-typescript-boilerplate/issues"
+    "url": "https://github.com/MitchCodes/Discord.ts-Buddy/issues"
   },
-  "homepage": "https://github.com/jsynowiec/node-typescript-boilerplate#readme",
+  "homepage": "https://github.com/MitchCodes/Discord.ts-Buddy#about",
   "dependencies": {
     "tslib": "~1.8.1",
     "winston": "2.3.0",
