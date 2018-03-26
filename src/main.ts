@@ -1,34 +1,30 @@
-import * as wins from 'winston';
-import { MainController } from './logic/main.controller';
-// tslint:disable-next-line:no-import-side-effect
-import 'winston-daily-rotate-file';
-import * as nconf from 'nconf';
-import { MultiGuildBot } from './logic/bots/multi-guild-bot';
+// Models
+export { BotRestartSettings } from './models/BotRestartSettings';
+export { CommandResultStatus, ICommandResult, CommandResult, 
+        ICommand, ICommandFactory, CommandMatchingType, CommandMatchingSettings } from './models/Command';
+export { CommandPermissionType, CommandPermissionFeedbackType, CommandPermissionRequirement, 
+        CommandPermissionRequirementSettings, ICommandPermissions } from './models/CommandPermission';
+export { IDiscordBot, IAutoManagedBot, BotStatus } from './models/DiscordBot';
+export { IKeyedCollection, KeyedCollection, GuildCollection } from './models/GuildCollection';
 
-// Configurations
-nconf.argv().env();
-nconf.file({ file: './config.json' });
-nconf.defaults({
-  botTokens: [],
-});
+// Azure Storage Manager
+export { AzureDictionary, IAzureSavable, AzureResultStatus, IAzureResult, AzureResult,
+        IAzureBatch, AzureBatch, AzureBatchResult, AzureBatchResults, AzureBatchResultStatus,
+        AzureBatchType, AzureStorageManager } from './data/azurestoragemanager.logic';
 
-// Logging
-const fileTransport = new wins.transports.DailyRotateFile({
-  filename: 'logs',
-  datePattern: '/yyyy/MM/bot-yyyy-MM-dd.log',
-  maxDays: 90,
-  createTree: true,
-});
+// Helpers
+export { DiscordHelper } from './logic/helpers/discord.helper';
+export { ModelComparer } from './logic/helpers/modelcompare.helper';
+export { StringHelper } from './logic/helpers/string.helper';
 
-const logger = new wins.Logger({
-  level: 'debug',
-  transports: [
-    new (wins.transports.Console)(),
-    fileTransport,
-  ],
-});
+// Bots
+export { BotManager } from './logic/botmanager.logic';
+export { MultiGuildBot } from './logic/bots/multi-guild-bot';
 
-logger.info('Logger level: ' + logger.level);
+// Services
+export { MessengerService } from './logic/services/messenger.service';
+export { CommandPermissionsService } from './logic/services/permissions.service';
 
-let mainController : MainController = new MainController();
-mainController.startProgram(logger, nconf);
+// Commands
+export { CommandParser } from './logic/command.logic';
+export { ICommandParserFactory, PrefixedCommandParserFactory, ExactCommandParserFactory } from './logic/factories/commandparser.factory';

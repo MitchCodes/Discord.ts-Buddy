@@ -1,8 +1,10 @@
 {
   "name": "discord.ts-buddy",
-  "version": "0.0.1",
-  "description": "Discord.js with TypeScript example boiler-plate and helper classes.",
+  "version": "0.2.7",
+  "description": "TypeScript helper classes for use with Discord.js bots.",
   "engineStrict": true,
+  "main": "./build/src/main.js",
+  "types": "./build/src/main.d.ts",
   "engines": {
     "node": ">= 8.9.0"
   },
@@ -17,14 +19,12 @@
     "tslint-microsoft-contrib": "~5.0.2",
     "tsutils": "~2.18.0",
     "typescript": "~2.6.2",
-    "merge-jsons-webpack-plugin": "~1.0.12",
     "ts-jest": "~22.4.1"
   },
   "scripts": {
     "clean": "rimraf coverage build tmp logs",
-    "build": "webpack --config webpack.dev.js",
-    "build-prod": "webpack --config webpack.prod.js",
-    "watch": "webpack --config webpack.dev.js --watch",
+    "build": "tsc",
+    "build-prod": "tsc --project tsconfig.release.json",
     "lint": "tslint -t stylish --project \"tsconfig.json\"",
     "lint-autofix": "tslint -t stylish --fix --project \"tsconfig.json\"",
     "pretest": "npm run lint --force",
@@ -33,7 +33,8 @@
     "test:watch": "jest --watch",
     "test-basic": "jest",
     "test-bots": "jest --rootDir=./ --config=./jest/jest.bots.config.js",
-    "test-azure": "jest --rootDir=./ --config=./jest/jest.azure.config.js"
+    "test-azure": "jest --rootDir=./ --config=./jest/jest.azure.config.js",
+    "publish-npm": "npm run clean && npm run build-prod && npm publish"
   },
   "author": "Mitch Chiles <mitchchiles@gmail.com>",
   "repository": {
@@ -48,19 +49,9 @@
     "tslib": "~1.8.1",
     "winston": "2.3.0",
     "winston-daily-rotate-file": "~1.7.2",
-    "moment": "~2.20.1",
-    "express": "~4.16.2",
     "nconf": "~0.10.0",
     "rxjs": "~5.5.6",
-    "webpack": "~3.10.0",
-    "webpack-merge": "~4.1.1",
-    "ts-loader": "~3.3.1",
-    "file-loader": "~1.1.6",
     "discord.js": "~11.3.2",
-    "bufferutil": "~3.0.3",
-    "sodium": "2.0.1",
-    "node-opus": "0.2.7",
-    "erlpack": "github:hammerandchisel/erlpack",
     "ffmpeg-binaries": "~3.2.2-3",
     "azure-storage": "~2.8.0"
   }

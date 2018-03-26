@@ -1,0 +1,53 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/
+
+# Coverage
+coverage
+
+# VS Code
+.vscode
+.vscode/
+
+.gitignore
+
+# JetBrains IDEs
+.idea/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Configuration
+config.common.json
+config.dev.json
+config.prod.json
+
+webpack.common.json
+webpack.dev.json
+webpack.prod.json
+
+tsconfig.json
+tsconfig.release.json
+
+# Source Files
+src/
+
+# Linting
+tslint.json
+
+# Testing
+jest/
+jest.config.json
+__tests__/
+
+# Misc
+.DS_Store
+.editorconfig
+.travis.yml

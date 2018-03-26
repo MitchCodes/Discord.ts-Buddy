@@ -1,4 +1,3 @@
-import { MainController } from '../../src/logic/main.controller';
 import * as wins from 'winston';
 import * as nconf from 'nconf';
 import { Client, Guild, VoiceChannel, VoiceConnection } from 'discord.js';
