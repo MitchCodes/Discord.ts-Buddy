@@ -1,7 +1,8 @@
 import { LoggerInstance } from 'winston';
 import { Provider } from 'nconf';
 import { IDiscordBot, BotStatus, IAutoManagedBot } from '../../models/DiscordBot';
-import { ICommandPermissions, CommandPermissionFeedbackType } from '../../models/CommandPermission';
+import { ICommandPermissions, CommandPermissionFeedbackType, CommandPermissionResult, 
+        CommandPermissionResultStatus } from '../../models/CommandPermission';
 import { Client, Guild, Message, TextChannel } from 'discord.js';
 
 // tslint:disable-next-line:no-submodule-imports
@@ -134,9 +135,9 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
                 let commandPermissions = <ICommandPermissions>commandAny;
                 let permissionService: CommandPermissionsService = new CommandPermissionsService();
                 
-                let hasPermissions: boolean = permissionService.hasPermissions(commandPermissions, msg);
+                let permissionResult: CommandPermissionResult = permissionService.hasPermissions(commandPermissions, msg);
 
-                if (!hasPermissions) {
+                if (permissionResult.permissionStatus === CommandPermissionResultStatus.noPermission) {
                     let result: CommandResult = new CommandResult();
                     result.replyHandled = true;
                     result.error = new Error('Lack of permissions');
@@ -145,6 +146,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
                     this.botInfo('User ' + msg.member.user.username + ' tried to run command ' + command.commandName 
                                 + '(' + msg.content + ') and lacked permission.');
                     this.handleLackPermissionReply(commandPermissions, msg);
+                    this.handleLackPermissionDeleteMessage(permissionResult, msg);
                     reject(result);
 
                     return;
@@ -182,6 +184,15 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
                 messengerService.sendTextChannelMessage(this, <TextChannel>msg.channel, replyMessage);
                 break;
             default:
+        }
+    }
+
+    protected handleLackPermissionDeleteMessage(permissionResult: CommandPermissionResult, msg: Message): void {
+        for (let failedRequirement of permissionResult.failedCommandRequirements) {
+            if (failedRequirement.deleteMessageIfFail && msg.deletable) {
+                msg.delete();
+                break;
+            }
         }
     }
 

@@ -3,7 +3,8 @@ export { BotRestartSettings } from './models/BotRestartSettings';
 export { CommandResultStatus, ICommandResult, CommandResult, 
         ICommand, ICommandFactory, CommandMatchingType, CommandMatchingSettings } from './models/Command';
 export { CommandPermissionType, CommandPermissionFeedbackType, CommandPermissionRequirement, 
-        CommandPermissionRequirementSettings, ICommandPermissions } from './models/CommandPermission';
+        CommandPermissionRequirementSettings, ICommandPermissions, CommandPermissionResultStatus,
+        CommandPermissionResult } from './models/CommandPermission';
 export { IDiscordBot, IAutoManagedBot, BotStatus } from './models/DiscordBot';
 export { IKeyedCollection, KeyedCollection, GuildCollection } from './models/GuildCollection';
 

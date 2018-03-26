@@ -17,6 +17,7 @@ export enum CommandPermissionFeedbackType {
 export class CommandPermissionRequirement {
     public permissionType: CommandPermissionType;
     public identifier: string;
+    public deleteMessageIfFail: boolean;
 }
 
 export class CommandPermissionRequirementSettings {
@@ -28,4 +29,14 @@ export interface ICommandPermissions {
     permissionRequirements: CommandPermissionRequirementSettings;
     permissionFailReplyType: CommandPermissionFeedbackType;
     getPermissionFailReplyText(msg: Message): string;
+}
+
+export enum CommandPermissionResultStatus {
+    noPermission = 0,
+    hasPermission = 1,
+}
+
+export class CommandPermissionResult {
+    public permissionStatus: CommandPermissionResultStatus;
+    public failedCommandRequirements: CommandPermissionRequirement[] = [];
 }
