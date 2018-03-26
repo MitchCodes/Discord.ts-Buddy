@@ -122,7 +122,10 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         for (let commandParser of this.commandParsers) {
             let command: ICommand = commandParser.parseCommand(msg.content);
             if (command !== null) {
-                this.handleCommand(command, msg);
+                this.handleCommand(command, msg).catch((cmdErr: ICommandResult) => {
+                    this.botError('Error processing command ' + command.commandName + ': ' 
+                                    + cmdErr.error + ' - Message: ' + cmdErr.message);
+                });
             }
         }
     }
