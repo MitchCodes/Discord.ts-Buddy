@@ -1,10 +1,13 @@
 // tslint:disable:no-console no-require-imports no-var-requires
 import { AzureStorageManager, IAzureSavable, AzureResult, IAzureResult, 
-         AzureResultStatus, AzureBatchResult, AzureBatchResults, AzureBatchResultStatus } from '../../src/data/azurestoragemanager.logic';
+         AzureResultStatus, AzureBatchResult, AzureBatchResults, 
+         AzureBatchResultStatus, AzureCache, AzureIdentifier } from '../../src/data/azurestoragemanager.logic';
 import * as winston from 'winston';
 import * as nconf from 'nconf';
 import { ModelComparer } from '../../src/logic/helpers/modelcompare.helper';
 import { TableQuery } from 'azure-storage';
+import * as moment from 'moment';
+jest.mock('../../src/data/azurestoragemanager.logic');
 
 export class CarTest implements IAzureSavable {
     public partitionKey: string;
@@ -87,6 +90,7 @@ describe('azure-storage-manager-tests', () => {
         convObject = testModelManager.convertToAzureObj(testModel);
         convertedTestModel = testModelManager.convertFromObjToType(testModelManager.convertFromAzureObjToObject(convObject));
 
+        AzureCache.prototype.setItem = jest.fn(AzureCache.prototype.setItem);
     });
 
     // afterAll(() => {
@@ -173,22 +177,27 @@ describe('azure-storage-manager-tests', () => {
                             expect(dataRemoveSuccess !== null).toBeTruthy();
                             done();
                         }).catch((dataRemoveErr: AzureResult<CarTest>) => {
+                            console.error(dataRemoveErr.error);
                             expect(dataRemoveErr.status !== AzureResultStatus.error).toBeTruthy();
                             done();
                         });
                     }).catch((dataQueryErr: AzureResult<CarTest>) => {
+                        console.error(dataQueryErr.error);
                         expect(false).toBeTruthy();
                         done();
                     });
                 }).catch((dataErrPartKey: AzureResult<CarTest>) => {
+                    console.error(dataErrPartKey.error);
                     expect(false).toBeTruthy();
                     done();
                 });
             }).catch((dataErr: AzureResult<CarTest>) => {
+                console.error(dataErr.error);
                 expect(false).toBeTruthy();
                 done();
             });
         }).catch((err: IAzureResult) => {
+            console.error(err.error);
             expect(false).toBeTruthy();
             done();
         });
@@ -228,6 +237,154 @@ describe('azure-storage-manager-tests', () => {
                 done();
             });
         }).catch((removeQueryErr: AzureBatchResults) => {
+            expect(false).toBeTruthy();
+            done();
+        });
+    });
+
+    test('caching class works', () => {
+        let comparer: ModelComparer<CarTest> = new ModelComparer<CarTest>();
+        let newCar: CarTest = new CarTest();
+        newCar.partitionKey = 'cachecars1';
+        newCar.rowKey = 'car1';
+        newCar.color = 'Blue';
+        newCar.make = 'Honda';
+        newCar.model = 'Civic';
+        newCar.year = 2003;
+        newCar.dateMade = new Date();
+        newCar.turboType = undefined; // test undefined scenario
+        newCar.engine = { isPowerful: true };
+        newCar.classVersion = 1;
+        newCar.isOn = false;
+
+        let newCarId: AzureIdentifier = AzureIdentifier.fromObj(newCar);
+        let tempTableName: string = 'testing';
+
+        let azureCache: AzureCache<CarTest> = new AzureCache<CarTest>();
+        expect(azureCache.getItem(tempTableName, newCarId)).toBeNull();
+        expect(azureCache.getItem(tempTableName, newCarId)).toBeNull();
+
+        azureCache.setItem(tempTableName, newCar, moment.duration(5, 'minutes'));
+
+        let cachedCar: CarTest = azureCache.getItem(tempTableName, newCarId);
+        expect(cachedCar).not.toBeNull();
+        expect(comparer.propertiesAreEqualToFirst(newCar, cachedCar)).toBeTruthy();
+
+        azureCache.invalidateCacheItem(tempTableName, newCarId);
+        expect(azureCache.getItem(tempTableName, newCarId)).toBeNull();        
+
+        let newCar2: CarTest = new CarTest();
+        newCar2.partitionKey = 'cachecars1';
+        newCar2.rowKey = 'car1';
+        newCar2.color = 'Blue';
+        newCar2.make = 'Honda';
+        newCar2.model = 'Civic';
+        newCar2.year = 2003;
+        newCar2.dateMade = new Date();
+        newCar2.turboType = undefined; // test undefined scenario
+        newCar2.engine = { isPowerful: true };
+        newCar2.classVersion = 1;
+        newCar2.isOn = false;
+        
+        let carArray: CarTest[] = [];
+        carArray.push(newCar2);
+
+        let testQuery: TableQuery = new TableQuery().where('make eq ?', '>?`!Honda');
+        expect(azureCache.getItemsByQuery(tempTableName, testQuery)).toBeNull();
+        expect(azureCache.getItemsByQuery(tempTableName, testQuery)).toBeNull();
+
+        azureCache.setItemsByQuery(tempTableName, carArray, testQuery, moment.duration(3, 'minutes'));
+
+        let cachedCarArray: CarTest[] = azureCache.getItemsByQuery(tempTableName, testQuery);
+        expect(cachedCarArray).not.toBeNull();
+        expect(cachedCarArray).toHaveLength(1);
+
+        let cachedCarArrayCar: CarTest = azureCache.getItem(tempTableName, AzureIdentifier.fromObj(newCar2));
+        expect(cachedCarArrayCar).not.toBeNull();
+        expect(comparer.propertiesAreEqualToFirst(cachedCarArrayCar, newCar2)).toBeTruthy();
+        cachedCarArrayCar.color = 'pink';
+        expect(comparer.propertiesAreEqualToFirst(cachedCarArrayCar, newCar2)).toBeTruthy();
+        expect(newCar2.color === 'pink').toBeTruthy();
+
+        azureCache.resetCache(tempTableName);
+
+        expect(azureCache.getItemsByQuery(tempTableName, testQuery)).toBeNull();
+    });
+
+    // tslint:disable-next-line:mocha-unneeded-done
+    test('test caching with data works', (done: any) => {
+        let newCar: CarTest = new CarTest();
+        newCar.partitionKey = 'cachecars2';
+        newCar.rowKey = 'car1';
+        newCar.color = 'Blue';
+        newCar.make = 'Honda';
+        newCar.model = 'Civic';
+        newCar.year = 2003;
+        newCar.dateMade = new Date();
+        newCar.turboType = undefined; // test undefined scenario
+        newCar.engine = { isPowerful: true };
+        newCar.isOn = false;
+
+        let newCar2: CarTest = new CarTest();
+        newCar2.partitionKey = 'cachecars2';
+        newCar2.rowKey = 'car2';
+        newCar2.color = 'Blue';
+        newCar2.make = 'Honda';
+        newCar2.model = 'Something';
+        newCar2.year = 2008;
+        newCar2.dateMade = new Date();
+        newCar2.turboType = undefined; // test undefined scenario
+        newCar2.engine = { isPowerful: true };
+        newCar2.isOn = false;
+
+        let cars: CarTest[] = [];
+        cars.push(newCar);
+        cars.push(newCar2);
+
+        let manager: AzureStorageManager<CarTest> = new AzureStorageManager<CarTest>(CarTest, storageAcct, storageKey);
+        let managerAny: any = <any>manager;
+        manager.initializeConnection();
+
+        let testQuery: TableQuery = new TableQuery().where('make eq ?', 'Honda');
+
+        manager.saveMany(storageTable, cars).then((saveRes: AzureBatchResults) => {
+            expect(saveRes.overallStatus === AzureBatchResultStatus.allSuccess).toBeTruthy();
+
+            return manager.getByPartitionAndRowKey(storageTable, newCar.partitionKey, newCar.rowKey, true);
+        }).then((queryRes: AzureResult<CarTest>) => {
+            expect(queryRes.status === AzureResultStatus.success).toBeTruthy();
+            expect(queryRes.data.length > 0).toBeTruthy();
+            expect(managerAny.cache).not.toBeUndefined();
+            expect(managerAny.cache).not.toBeNull();
+            expect(AzureCache.prototype.setItem).toHaveBeenCalled();
+
+            return manager.getByPartitionAndRowKey(storageTable, newCar.partitionKey, newCar.rowKey, true);
+        }).then((queryRes: AzureResult<CarTest>) => {
+            expect(queryRes.message === 'Got data from cache.').toBeTruthy();
+            let azureCache: AzureCache<CarTest> = managerAny.cache;
+            let car: CarTest = azureCache.getItem(storageTable, AzureIdentifier.fromObj(newCar));
+            expect(car).not.toBeNull();
+            expect(car).not.toBeUndefined();
+            
+            let comparer: ModelComparer<CarTest> = new ModelComparer<CarTest>();
+
+            expect(comparer.propertiesAreEqualToFirst(newCar, car, true)).toBeTruthy();
+
+            return manager.getByPartitionKey(storageTable, car.partitionKey, true);
+        }).then((queryPRes: AzureResult<CarTest>) => {
+            expect(queryPRes.message === 'Got data from cache.').not.toBeTruthy();
+            expect(queryPRes.status === AzureResultStatus.success).toBeTruthy();
+            expect(queryPRes.data.length > 1).toBeTruthy();
+
+            return manager.getByPartitionKey(storageTable, queryPRes.data[0].partitionKey, true);
+        }).then((queryPRes: AzureResult<CarTest>) => {
+            expect(queryPRes.message === 'Got data from cache.').toBeTruthy();
+            expect(queryPRes.status === AzureResultStatus.success).toBeTruthy();
+            expect(queryPRes.data.length > 1).toBeTruthy();
+
+            done();
+        }).catch((err: any) => {
+            console.error(err);
             expect(false).toBeTruthy();
             done();
         });

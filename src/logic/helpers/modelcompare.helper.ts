@@ -30,6 +30,14 @@ export class ModelComparer<T> {
                 return false;
             }
 
+            if (keyType === 'object' && first[key] instanceof Date && second[key] instanceof Date) {
+                if (first[key].getTime() === second[key].getTime()) {
+                    continue;
+                } else {
+                    return false;
+                }
+            }
+
             if (first[key] !== second[key]) {
                 return false;
             }

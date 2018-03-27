@@ -21,7 +21,9 @@ If you are looking for a boilerplate example project that shows you how to use t
 * A basic messenger service that will send out messages using an embed look-and-feel (as of this moment).
 * A GuildCollection generic class that acts as a dictionary for any kind of object using a guild as a key.
 * An Azure Storage Manager generic class that makes life much easier when trying to use the JavaScript version of Azure Table Storage.
-    * Definitely considered making this a separate package so you get two for one here if you use Azure Table Storage!
+    * Semi-smart-caching feature which allows you to optionally cache your data for a certain time-span when querying.
+        * Self-clean-up!
+    * Definitely considered(ing) making this a separate package so you get two for one here if you use Azure Table Storage!
 
 ## Development Notes
 

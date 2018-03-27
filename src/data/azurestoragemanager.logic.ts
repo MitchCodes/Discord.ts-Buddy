@@ -1,5 +1,6 @@
 import { TableService, ErrorOrResult, TableUtilities, ExponentialRetryPolicyFilter, 
     createTableService, TableQuery, TableBatch } from 'azure-storage';
+import * as moment from 'moment';
 
 export interface AzureDictionary<T> {
     [K: string]: T;
@@ -96,9 +97,10 @@ export enum AzureBatchType {
     global = 1,
 }
 
-// tslint:disable-next-line:no-stateless-class no-unnecessary-class max-classes-per-file
+// tslint:disable-next-line:max-classes-per-file
 export class AzureStorageManager<T extends IAzureSavable> {
     private static globalBatches: AzureDictionary<IAzureBatch> = {};
+    private static globalCache: AzureDictionary<any> = {};
     private tblService: TableService = null;
     private azureStorageAccount: string = '';
     private azureStorageKey: string = '';
@@ -106,6 +108,7 @@ export class AzureStorageManager<T extends IAzureSavable> {
     private testType: new () => T;
     private instanceBatches: AzureDictionary<IAzureBatch> = {};
     private maxBatchNumber: number = 50;
+    private cache: AzureCache<T> = null;
 
     public constructor(testType: new () => T, azureStorageAccount: string = '', 
                        azureStorageKey: string = '', overrideTableService: TableService = null) {
@@ -116,6 +119,16 @@ export class AzureStorageManager<T extends IAzureSavable> {
 
         if (overrideTableService !== null) {
             this.tblService = overrideTableService;
+        }
+
+        let typeName: string = this.getTypeName();
+        let azureCacheAny: any = AzureStorageManager.globalCache[typeName];
+        if (azureCacheAny !== undefined && azureCacheAny !== null) {
+            this.cache = <AzureCache<T>>azureCacheAny;
+        } else {
+            let newCache: AzureCache<T> = new AzureCache<T>();
+            AzureStorageManager.globalCache[typeName] = newCache;
+            this.cache = newCache;
         }
     }
 
@@ -173,35 +186,100 @@ export class AzureStorageManager<T extends IAzureSavable> {
         });
     }
 
-    public getByPartitionAndRowKey(tableName: string, partitionKey: string, rowKey: string): Promise<AzureResult<T>> {
+    public getByPartitionAndRowKey(tableName: string, partitionKey: string, rowKey: string, 
+                                   useCache: boolean = false, 
+                                   cacheDuration: moment.Duration = moment.duration(3, 'hours')): Promise<AzureResult<T>> {
         return new Promise<AzureResult<T>>((resolve : (val: AzureResult<T>) => void, reject : (val: AzureResult<T>) => void) => {
+            let runQuery: boolean = true;
             let tableQuery: TableQuery = new TableQuery().where('PartitionKey eq ?', partitionKey).and('RowKey eq ?', rowKey);
-            this.executeQuery(tableName, tableQuery).then((success: AzureResult<T>) => {
-                resolve(success);
-            }).catch((err: AzureResult<T>) => {
-                reject(err);
-            });
+            if (useCache) {
+                let cachedItem: T = this.cache.getItem(tableName, new AzureIdentifier(partitionKey, rowKey));
+                if (cachedItem !== null) {
+                    runQuery = false;
+                    let result: AzureResult<T> = new AzureResult<T>();
+                    result.status = AzureResultStatus.success;
+                    result.message = 'Got data from cache.';
+                    result.data.push(cachedItem);
+                    resolve(result);
+                }
+            }
+            if (runQuery) {
+                this.executeQuery(tableName, tableQuery).then((success: AzureResult<T>) => {
+                    if (useCache && success.data.length === 1) {
+                        this.cache.setItem(tableName, success.data[0], cacheDuration);
+                    }
+                    resolve(success);
+                }).catch((err: AzureResult<T>) => {
+                    reject(err);
+                });
+            }
         });
     }
 
-    public getByPartitionKey(tableName: string, partitionKey: string): Promise<AzureResult<T>> {
+    public getByPartitionKey(tableName: string, partitionKey: string,
+                             useCache: boolean = false, 
+                             cacheDuration: moment.Duration = moment.duration(3, 'hours')): Promise<AzureResult<T>> {
         return new Promise<AzureResult<T>>((resolve : (val: AzureResult<T>) => void, reject : (val: AzureResult<T>) => void) => {
+            let runQuery: boolean = true;
             let tableQuery: TableQuery = new TableQuery().where('PartitionKey eq ?', partitionKey);
-            this.executeQuery(tableName, tableQuery).then((success: AzureResult<T>) => {
-                resolve(success);
-            }).catch((err: AzureResult<T>) => {
-                reject(err);
-            });
+            if (useCache) {
+                let cachedItems: T[] = this.cache.getItemsByQuery(tableName, tableQuery);
+                if (cachedItems !== null) {
+                    debugger;
+                    runQuery = false;
+                    let result: AzureResult<T> = new AzureResult<T>();
+                    result.status = AzureResultStatus.success;
+                    result.message = 'Got data from cache.';
+                    for (let cachedItem of cachedItems) {
+                        result.data.push(cachedItem);
+                    }
+                    resolve(result);
+                }
+            }
+            if (runQuery) {
+                this.executeQuery(tableName, tableQuery).then((success: AzureResult<T>) => {
+                    if (useCache) {
+                        debugger;
+                        this.cache.setItemsByQuery(tableName, success.data, tableQuery, cacheDuration);
+                    }
+                    resolve(success);
+                }).catch((err: AzureResult<T>) => {
+                    reject(err);
+                });
+            }
         });
     }
 
-    public getByQuery(tableName: string, query: TableQuery): Promise<AzureResult<T>> {
+    public getByQuery(tableName: string, query: TableQuery,
+                      useCache: boolean = false, 
+                      cacheDuration: moment.Duration = moment.duration(3, 'hours')): Promise<AzureResult<T>> {
         return new Promise<AzureResult<T>>((resolve : (val: AzureResult<T>) => void, reject : (val: AzureResult<T>) => void) => {
-            this.executeQuery(tableName, query).then((success: AzureResult<T>) => {
-                resolve(success);
-            }).catch((err: AzureResult<T>) => {
-                reject(err);
-            });
+            let runQuery: boolean = true;
+            if (useCache) {
+                let cachedItems: T[] = this.cache.getItemsByQuery(tableName, query);
+                if (cachedItems !== null) {
+                    debugger;
+                    runQuery = false;
+                    let result: AzureResult<T> = new AzureResult<T>();
+                    result.status = AzureResultStatus.success;
+                    result.message = 'Got data from cache.';
+                    for (let cachedItem of cachedItems) {
+                        result.data.push(cachedItem);
+                    }
+                    resolve(result);
+                }
+            }
+            if (runQuery) {
+                this.executeQuery(tableName, query).then((success: AzureResult<T>) => {
+                    if (useCache) {
+                        debugger;
+                        this.cache.setItemsByQuery(tableName, success.data, query, cacheDuration);
+                    }
+                    resolve(success);
+                }).catch((err: AzureResult<T>) => {
+                    reject(err);
+                });
+            }
         });
     }
 
@@ -458,7 +536,7 @@ export class AzureStorageManager<T extends IAzureSavable> {
         });
     }
 
-    private updateModel(inputObject: Object): void {
+    private updateModel(inputObject: Object): boolean {
         let newModel: T = this.getNew();
         let inputVersion: number = -1;
         // tslint:disable-next-line:no-string-literal
@@ -471,6 +549,8 @@ export class AzureStorageManager<T extends IAzureSavable> {
             // tslint:disable-next-line:no-string-literal
             inputObject['classVersion'] = newModel.classVersion;
         }
+
+        return updated;
     }
 
     private getNew(): T {
@@ -482,6 +562,7 @@ export class AzureStorageManager<T extends IAzureSavable> {
             let azureResult: AzureResult<T> = new AzureResult<T>();
             azureResult.status = AzureResultStatus.executing;
             let azureObj = this.convertToAzureObj(obj);
+            this.cache.invalidateCacheItem(tableName, AzureIdentifier.fromObj(obj));
             this.tblService.insertOrReplaceEntity(tableName, azureObj, {}, (error: any, result: any, response: any) => {
                 if (error) {
                     azureResult.status = AzureResultStatus.error;
@@ -510,6 +591,7 @@ export class AzureStorageManager<T extends IAzureSavable> {
                     batch.currentBatch = new TableBatch();
                 }
                 batch.currentBatch.insertOrReplaceEntity(azureObj);
+                this.cache.invalidateCacheItem(batch.tableName, AzureIdentifier.fromObj(obj));
 
                 result.message = 'Successfully added insert/update to batch.';
                 result.status = AzureResultStatus.success;
@@ -531,6 +613,7 @@ export class AzureStorageManager<T extends IAzureSavable> {
         return new Promise<IAzureResult>((resolve : (val: IAzureResult) => void, reject : (val: IAzureResult) => void) => {
             let azureResult: AzureResult<T> = new AzureResult<T>();
             let azureObj = this.convertToAzureObjOnlyKeys(obj);
+            this.cache.invalidateCacheItem(tableName, AzureIdentifier.fromObj(obj));
             this.tblService.deleteEntity(tableName, azureObj, {}, (error: any, response: any) => {
                 if (error) {
                     azureResult.status = AzureResultStatus.error;
@@ -559,6 +642,7 @@ export class AzureStorageManager<T extends IAzureSavable> {
                     batch.currentBatch = new TableBatch();
                 }
                 batch.currentBatch.deleteEntity(azureObj);
+                this.cache.invalidateCacheItem(batch.tableName, AzureIdentifier.fromObj(obj));
 
                 result.message = 'Successfully added remove to batch.';
                 result.status = AzureResultStatus.success;
@@ -640,7 +724,29 @@ export class AzureStorageManager<T extends IAzureSavable> {
             if (key === 'PartitionKey' || key === 'RowKey') {
                 continue;
             }
-            returnObj[key] = azureObj[key]._;
+
+            let azureModel: any = azureObj[key];
+
+            switch (azureModel.$) {
+                case TableUtilities.EdmType.INT64:
+                    returnObj[key] = Number(azureObj[key]._);
+                    break;
+                case TableUtilities.EdmType.INT32:
+                    returnObj[key] = Number(azureObj[key]._);
+                    break;
+                case TableUtilities.EdmType.DOUBLE:
+                    returnObj[key] = Number(azureObj[key]._);
+                    break;
+                case TableUtilities.EdmType.BOOLEAN:
+                    returnObj[key] = Boolean(azureObj[key]._);
+                    break;
+                case TableUtilities.EdmType.DATETIME:
+                    returnObj[key] = new Date(azureObj[key]._);
+                    break;
+                default:
+                    returnObj[key] = azureObj[key]._;
+            }
+            
         }
 
         return returnObj;
@@ -667,8 +773,168 @@ export class AzureStorageManager<T extends IAzureSavable> {
         return Math.floor((1 + Math.random()) * 0x10000) .toString(16).substring(1);
     }
 
-    // private getObjBasedOnPartitionKey(partitionKey: string) {
-        
-    // }
+    // This may return a different name if the generic class is minified.
+    private getTypeName(): string {
+        let newObj: T = this.getNew();
+        let constructCasted: any = newObj.constructor;
 
+        return constructCasted.name;
+    }
+
+}
+
+// tslint:disable-next-line:max-classes-per-file no-unnecessary-class
+export class AzureIdentifier {
+    public partitionKey: string;
+    public rowKey: string;
+
+    get cacheKey(): string {
+        return this.partitionKey + '_' + this.rowKey;
+    }
+
+    public constructor(partitionKey: string, rowKey: string) {
+        this.partitionKey = partitionKey;
+        this.rowKey = rowKey;
+    }
+
+    // tslint:disable-next-line:function-name
+    public static fromObj(savableObj: IAzureSavable): AzureIdentifier {
+        return new this(savableObj.partitionKey, savableObj.rowKey);
+    }
+}
+
+// tslint:disable-next-line:max-classes-per-file no-unnecessary-class
+export class AzureCache<T extends IAzureSavable> {
+    private dictionary: AzureDictionary<AzureTableCache<T>> = {};
+
+    public getItem(table: string, id: AzureIdentifier): T {
+        return this.getTableCache(table).getItem(id);
+    }
+
+    public getItemsByQuery(table: string, query: TableQuery): T[] {
+        return this.getTableCache(table).getItemsByQuery(query);
+    }
+
+    public setItem(table: string, obj: T, expirationDur: moment.Duration): void {
+        this.getTableCache(table).setItem(obj, expirationDur);
+    }
+
+    public setItemsByQuery(table: string, objs: T[], query: TableQuery, expirationDur: moment.Duration): void {
+        this.getTableCache(table).setItemsByQuery(objs, query, expirationDur);
+    }
+
+    public resetCache(table: string): void {
+        this.getTableCache(table).resetCache();
+    }
+
+    public invalidateCacheItem(table: string, id: AzureIdentifier): void {
+        this.getTableCache(table).invalidateCacheItem(id);
+    }
+
+    private getTableCache(table: string): AzureTableCache<T> {
+        let tableCache: AzureTableCache<T> = this.dictionary[table];
+        if (tableCache === undefined || tableCache === null) {
+            tableCache = new AzureTableCache<T>();
+            this.dictionary[table] = tableCache;
+        }
+
+        return tableCache;
+    }
+}
+
+// tslint:disable-next-line:max-classes-per-file no-unnecessary-class
+export class AzureTableCache<T extends IAzureSavable> {
+    private dictionary: AzureDictionary<T> = {};
+    private expireDictionary: AzureDictionary<moment.Moment> = {};
+    private queryDictionary: AzureDictionary<AzureIdentifier[]> = {};
+
+    public getItem(id: AzureIdentifier): T {
+        let cachedObj: T = this.dictionary[id.cacheKey];
+        if (cachedObj === undefined) {
+            return null;
+        }
+
+        if (cachedObj !== undefined && cachedObj !== null && this.isExpired(id)) {
+            this.resetCacheItem(id);
+            cachedObj = null;
+        }
+
+        return cachedObj;
+    }
+
+    public getItemsByQuery(query: TableQuery): T[] {
+        let returnArray: T[] = [];
+        let queryString: string = query.toQueryObject.toString();
+        
+        let identifiers: AzureIdentifier[] = this.queryDictionary[queryString];
+
+        if (identifiers === undefined || identifiers === null) {
+            return null;
+        }
+
+        for (let identifier of identifiers) {
+            let cachedObj: T = this.getItem(identifier);
+            if (cachedObj === undefined || cachedObj === null) {
+                // not returning null for the whole thing would break integrity.. 
+                // don't want to successfully only query 3 out of the 5 for example
+                return null; 
+            }
+            returnArray.push(cachedObj);
+        }
+
+        return returnArray;
+    }
+
+    // tslint:disable:no-console
+    public setItem(obj: T, expirationDur: moment.Duration): void {
+        let identifier: AzureIdentifier = AzureIdentifier.fromObj(obj);
+        this.setItemById(obj, identifier, expirationDur);
+    }
+
+    public setItemsByQuery(objs: T[], query: TableQuery, expirationDur: moment.Duration): void {
+        let queryIdentifiers: AzureIdentifier[] = [];
+
+        for (let curObj of objs) {
+            let curIdentifier: AzureIdentifier = AzureIdentifier.fromObj(curObj);
+            this.setItemById(curObj, curIdentifier, expirationDur);
+            queryIdentifiers.push(curIdentifier);
+        }
+
+        let queryString: string = query.toQueryObject.toString();
+        this.queryDictionary[queryString] = queryIdentifiers;
+    }
+
+    public resetCache(): void {
+        this.dictionary = {};
+        this.expireDictionary = {};
+        this.queryDictionary = {};
+    }
+
+    public invalidateCacheItem(id: AzureIdentifier): void {
+        this.resetCacheItem(id);
+    }
+
+    private setItemById(obj: T, identifier: AzureIdentifier, expirationDur: moment.Duration): void {
+        this.dictionary[identifier.cacheKey] = obj;
+        this.expireDictionary[identifier.cacheKey] = moment().add(expirationDur);
+    }
+
+    private isExpired(id: AzureIdentifier): boolean {
+        let currentTime: moment.Moment = moment();
+        let expiration: moment.Moment = this.expireDictionary[id.cacheKey];
+        if (expiration !== undefined && expiration !== null && currentTime.isAfter(expiration)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private resetCacheItem(id: AzureIdentifier): void {
+        this.dictionary[id.cacheKey] = null;
+        this.expireDictionary[id.cacheKey] = null;
+    }
+
+    private cleanupIfNecessary(): void {
+        // need to finish
+    }
 }
