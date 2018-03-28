@@ -1,7 +1,7 @@
 // tslint:disable:no-console no-require-imports no-var-requires
 import { AzureStorageManager, IAzureSavable, AzureResult, IAzureResult, 
          AzureResultStatus, AzureBatchResult, AzureBatchResults, 
-         AzureBatchResultStatus, AzureCache, AzureIdentifier } from '../../src/data/azurestoragemanager.logic';
+         AzureBatchResultStatus, AzureCacheInMemory, AzureIdentifier } from '../../src/data/azurestoragemanager.logic';
 import * as winston from 'winston';
 import * as nconf from 'nconf';
 import { ModelComparer } from '../../src/logic/helpers/modelcompare.helper';
@@ -90,7 +90,7 @@ describe('azure-storage-manager-tests', () => {
         convObject = testModelManager.convertToAzureObj(testModel);
         convertedTestModel = testModelManager.convertFromObjToType(testModelManager.convertFromAzureObjToObject(convObject));
 
-        AzureCache.prototype.setItem = jest.fn(AzureCache.prototype.setItem);
+        AzureCacheInMemory.prototype.setItem = jest.fn(AzureCacheInMemory.prototype.setItem);
     });
 
     // afterAll(() => {
@@ -260,7 +260,7 @@ describe('azure-storage-manager-tests', () => {
         let newCarId: AzureIdentifier = AzureIdentifier.fromObj(newCar);
         let tempTableName: string = 'testing';
 
-        let azureCache: AzureCache<CarTest> = new AzureCache<CarTest>();
+        let azureCache: AzureCacheInMemory<CarTest> = new AzureCacheInMemory<CarTest>();
         expect(azureCache.getItem(tempTableName, newCarId)).toBeNull();
         expect(azureCache.getItem(tempTableName, newCarId)).toBeNull();
 
@@ -356,12 +356,12 @@ describe('azure-storage-manager-tests', () => {
             expect(queryRes.data.length > 0).toBeTruthy();
             expect(managerAny.cache).not.toBeUndefined();
             expect(managerAny.cache).not.toBeNull();
-            expect(AzureCache.prototype.setItem).toHaveBeenCalled();
+            expect(AzureCacheInMemory.prototype.setItem).toHaveBeenCalled();
 
             return manager.getByPartitionAndRowKey(storageTable, newCar.partitionKey, newCar.rowKey, true);
         }).then((queryRes: AzureResult<CarTest>) => {
             expect(queryRes.message === 'Got data from cache.').toBeTruthy();
-            let azureCache: AzureCache<CarTest> = managerAny.cache;
+            let azureCache: AzureCacheInMemory<CarTest> = managerAny.cache;
             let car: CarTest = azureCache.getItem(storageTable, AzureIdentifier.fromObj(newCar));
             expect(car).not.toBeNull();
             expect(car).not.toBeUndefined();

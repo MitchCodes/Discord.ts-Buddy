@@ -11,7 +11,8 @@ export { IKeyedCollection, KeyedCollection, GuildCollection } from './models/Gui
 // Azure Storage Manager
 export { AzureDictionary, IAzureSavable, AzureResultStatus, IAzureResult, AzureResult,
         IAzureBatch, AzureBatch, AzureBatchResult, AzureBatchResults, AzureBatchResultStatus,
-        AzureBatchType, AzureStorageManager, AzureCache, AzureIdentifier, AzureTableCache } from './data/azurestoragemanager.logic';
+        AzureBatchType, AzureStorageManager, AzureCacheInMemory, AzureIdentifier, AzureCacheData, 
+        AzureTableCacheData, IAzureCache } from './data/azurestoragemanager.logic';
 
 // Helpers
 export { DiscordHelper } from './logic/helpers/discord.helper';

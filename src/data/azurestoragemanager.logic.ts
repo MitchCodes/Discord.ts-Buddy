@@ -108,7 +108,7 @@ export class AzureStorageManager<T extends IAzureSavable> {
     private testType: new () => T;
     private instanceBatches: AzureDictionary<IAzureBatch> = {};
     private maxBatchNumber: number = 50;
-    private cache: AzureCache<T> = null;
+    private cache: IAzureCache<T> = null;
 
     public constructor(testType: new () => T, azureStorageAccount: string = '', 
                        azureStorageKey: string = '', overrideTableService: TableService = null) {
@@ -124,9 +124,9 @@ export class AzureStorageManager<T extends IAzureSavable> {
         let typeName: string = this.getTypeName();
         let azureCacheAny: any = AzureStorageManager.globalCache[typeName];
         if (azureCacheAny !== undefined && azureCacheAny !== null) {
-            this.cache = <AzureCache<T>>azureCacheAny;
+            this.cache = <IAzureCache<T>>azureCacheAny;
         } else {
-            let newCache: AzureCache<T> = new AzureCache<T>();
+            let newCache: IAzureCache<T> = new AzureCacheInMemory<T>();
             AzureStorageManager.globalCache[typeName] = newCache;
             this.cache = newCache;
         }
@@ -804,76 +804,58 @@ export class AzureIdentifier {
 }
 
 // tslint:disable-next-line:max-classes-per-file no-unnecessary-class
-export class AzureCache<T extends IAzureSavable> {
-    private dictionary: AzureDictionary<AzureTableCache<T>> = {};
-
-    public getItem(table: string, id: AzureIdentifier): T {
-        return this.getTableCache(table).getItem(id);
-    }
-
-    public getItemsByQuery(table: string, query: TableQuery): T[] {
-        return this.getTableCache(table).getItemsByQuery(query);
-    }
-
-    public setItem(table: string, obj: T, expirationDur: moment.Duration): void {
-        this.getTableCache(table).setItem(obj, expirationDur);
-    }
-
-    public setItemsByQuery(table: string, objs: T[], query: TableQuery, expirationDur: moment.Duration): void {
-        this.getTableCache(table).setItemsByQuery(objs, query, expirationDur);
-    }
-
-    public resetCache(table: string): void {
-        this.getTableCache(table).resetCache();
-    }
-
-    public invalidateCacheItem(table: string, id: AzureIdentifier): void {
-        this.getTableCache(table).invalidateCacheItem(id);
-    }
-
-    private getTableCache(table: string): AzureTableCache<T> {
-        let tableCache: AzureTableCache<T> = this.dictionary[table];
-        if (tableCache === undefined || tableCache === null) {
-            tableCache = new AzureTableCache<T>();
-            this.dictionary[table] = tableCache;
-        }
-
-        return tableCache;
-    }
+export class AzureCacheData<T extends IAzureSavable> {
+    public tableDict: AzureDictionary<AzureTableCacheData<T>> = {};
 }
 
 // tslint:disable-next-line:max-classes-per-file no-unnecessary-class
-export class AzureTableCache<T extends IAzureSavable> {
-    private dictionary: AzureDictionary<T> = {};
-    private expireDictionary: AzureDictionary<moment.Moment> = {};
-    private queryDictionary: AzureDictionary<AzureIdentifier[]> = {};
+export class AzureTableCacheData<T extends IAzureSavable> {
+    public entityDict: AzureDictionary<T> = {};
+    public expireDict: AzureDictionary<moment.Moment> = {};
+    public queryDict: AzureDictionary<AzureIdentifier[]> = {};
+}
 
-    public getItem(id: AzureIdentifier): T {
-        let cachedObj: T = this.dictionary[id.cacheKey];
+export interface IAzureCache<T extends IAzureSavable> {
+    getItem(table: string, id: AzureIdentifier): T;
+    getItemsByQuery(table: string, query: TableQuery): T[];
+    setItem(table: string, obj: T, expirationDur: moment.Duration): void;
+    setItemsByQuery(table: string, objs: T[], query: TableQuery, expirationDur: moment.Duration): void;
+    resetCache(table: string): void;
+    invalidateCacheItem(table: string, id: AzureIdentifier): void;
+}
+
+// tslint:disable-next-line:max-classes-per-file no-unnecessary-class
+export class AzureCacheInMemory<T extends IAzureSavable> implements IAzureCache<T> {
+    private cache: AzureCacheData<T> = new AzureCacheData<T>();
+
+    public getItem(table: string, id: AzureIdentifier): T {
+        let tableCache: AzureTableCacheData<T> = this.getTableCache(table);
+        let cachedObj: T = tableCache.entityDict[id.cacheKey];
         if (cachedObj === undefined) {
             return null;
         }
 
-        if (cachedObj !== undefined && cachedObj !== null && this.isExpired(id)) {
-            this.resetCacheItem(id);
+        if (cachedObj !== undefined && cachedObj !== null && this.isExpired(tableCache, id)) {
+            this.resetCacheItem(tableCache, id);
             cachedObj = null;
         }
 
         return cachedObj;
     }
 
-    public getItemsByQuery(query: TableQuery): T[] {
+    public getItemsByQuery(table: string, query: TableQuery): T[] {
+        let tableCache: AzureTableCacheData<T> = this.getTableCache(table);
         let returnArray: T[] = [];
         let queryString: string = query.toQueryObject.toString();
         
-        let identifiers: AzureIdentifier[] = this.queryDictionary[queryString];
+        let identifiers: AzureIdentifier[] = tableCache.queryDict[queryString];
 
         if (identifiers === undefined || identifiers === null) {
             return null;
         }
 
         for (let identifier of identifiers) {
-            let cachedObj: T = this.getItem(identifier);
+            let cachedObj: T = this.getItem(table, identifier);
             if (cachedObj === undefined || cachedObj === null) {
                 // not returning null for the whole thing would break integrity.. 
                 // don't want to successfully only query 3 out of the 5 for example
@@ -886,42 +868,46 @@ export class AzureTableCache<T extends IAzureSavable> {
     }
 
     // tslint:disable:no-console
-    public setItem(obj: T, expirationDur: moment.Duration): void {
+    public setItem(table: string, obj: T, expirationDur: moment.Duration): void {
+        let tableCache: AzureTableCacheData<T> = this.getTableCache(table);
         let identifier: AzureIdentifier = AzureIdentifier.fromObj(obj);
-        this.setItemById(obj, identifier, expirationDur);
+        this.setItemById(tableCache, obj, identifier, expirationDur);
     }
 
-    public setItemsByQuery(objs: T[], query: TableQuery, expirationDur: moment.Duration): void {
+    public setItemsByQuery(table: string, objs: T[], query: TableQuery, expirationDur: moment.Duration): void {
+        let tableCache: AzureTableCacheData<T> = this.getTableCache(table);
         let queryIdentifiers: AzureIdentifier[] = [];
 
         for (let curObj of objs) {
             let curIdentifier: AzureIdentifier = AzureIdentifier.fromObj(curObj);
-            this.setItemById(curObj, curIdentifier, expirationDur);
+            this.setItemById(tableCache, curObj, curIdentifier, expirationDur);
             queryIdentifiers.push(curIdentifier);
         }
 
         let queryString: string = query.toQueryObject.toString();
-        this.queryDictionary[queryString] = queryIdentifiers;
+        tableCache.queryDict[queryString] = queryIdentifiers;
     }
 
-    public resetCache(): void {
-        this.dictionary = {};
-        this.expireDictionary = {};
-        this.queryDictionary = {};
+    public resetCache(table: string): void {
+        let tableCache: AzureTableCacheData<T> = this.getTableCache(table);
+        tableCache.entityDict = {};
+        tableCache.expireDict = {};
+        tableCache.queryDict = {};
     }
 
-    public invalidateCacheItem(id: AzureIdentifier): void {
-        this.resetCacheItem(id);
+    public invalidateCacheItem(table: string, id: AzureIdentifier): void {
+        let tableCache: AzureTableCacheData<T> = this.getTableCache(table);
+        this.resetCacheItem(tableCache, id);
     }
 
-    private setItemById(obj: T, identifier: AzureIdentifier, expirationDur: moment.Duration): void {
-        this.dictionary[identifier.cacheKey] = obj;
-        this.expireDictionary[identifier.cacheKey] = moment().add(expirationDur);
+    private setItemById(tableCache: AzureTableCacheData<T>, obj: T, identifier: AzureIdentifier, expirationDur: moment.Duration): void {
+        tableCache.entityDict[identifier.cacheKey] = obj;
+        tableCache.expireDict[identifier.cacheKey] = moment().add(expirationDur);
     }
 
-    private isExpired(id: AzureIdentifier): boolean {
+    private isExpired(tableCache: AzureTableCacheData<T>, id: AzureIdentifier): boolean {
         let currentTime: moment.Moment = moment();
-        let expiration: moment.Moment = this.expireDictionary[id.cacheKey];
+        let expiration: moment.Moment = tableCache.expireDict[id.cacheKey];
         if (expiration !== undefined && expiration !== null && currentTime.isAfter(expiration)) {
             return true;
         }
@@ -929,12 +915,22 @@ export class AzureTableCache<T extends IAzureSavable> {
         return false;
     }
 
-    private resetCacheItem(id: AzureIdentifier): void {
-        this.dictionary[id.cacheKey] = null;
-        this.expireDictionary[id.cacheKey] = null;
+    private resetCacheItem(tableCache: AzureTableCacheData<T>, id: AzureIdentifier): void {
+        tableCache.entityDict[id.cacheKey] = null;
+        tableCache.expireDict[id.cacheKey] = null;
     }
 
     private cleanupIfNecessary(): void {
         // need to finish
+    }
+
+    private getTableCache(table: string): AzureTableCacheData<T> {
+        let tableCache: AzureTableCacheData<T> = this.cache.tableDict[table];
+        if (tableCache === undefined || tableCache === null) {
+            tableCache = new AzureTableCacheData<T>();
+            this.cache.tableDict[table] = tableCache;
+        }
+
+        return tableCache;
     }
 }
