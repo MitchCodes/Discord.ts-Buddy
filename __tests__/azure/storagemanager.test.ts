@@ -306,7 +306,7 @@ describe('azure-storage-manager-tests', () => {
         expect(comparer.propertiesAreEqualToFirst(cachedCarArrayCar, newCar2)).toBeTruthy();
         expect(newCar2.color === 'pink').toBeTruthy();
 
-        azureCache.resetCache(tempTableName);
+        azureCache.resetTableCache(tempTableName);
 
         expect(azureCache.getItemsByQuery(tempTableName, testQuery)).toBeNull();
     });
@@ -353,6 +353,7 @@ describe('azure-storage-manager-tests', () => {
             return manager.getByPartitionAndRowKey(storageTable, newCar.partitionKey, newCar.rowKey, true);
         }).then((queryRes: AzureResult<CarTest>) => {
             expect(queryRes.status === AzureResultStatus.success).toBeTruthy();
+            expect(queryRes.message !== 'Got data from cache.').toBeTruthy();
             expect(queryRes.data.length > 0).toBeTruthy();
             expect(managerAny.cache).not.toBeUndefined();
             expect(managerAny.cache).not.toBeNull();
@@ -387,6 +388,91 @@ describe('azure-storage-manager-tests', () => {
             console.error(err);
             expect(false).toBeTruthy();
             done();
+        });
+    });
+
+    test('cache cleanup tests', (done: any) => {
+        let newCar: CarTest = new CarTest();
+        newCar.partitionKey = 'cachecarscleanup';
+        newCar.rowKey = 'car1';
+        newCar.color = 'Blue';
+        newCar.make = 'Honda';
+        newCar.model = 'Civic';
+        newCar.year = 2003;
+        newCar.dateMade = new Date();
+        newCar.turboType = undefined; // test undefined scenario
+        newCar.engine = { isPowerful: true };
+        newCar.isOn = false;
+
+        let newCar2: CarTest = new CarTest();
+        newCar2.partitionKey = 'cachecarscleanup';
+        newCar2.rowKey = 'car2';
+        newCar2.color = 'Blue';
+        newCar2.make = 'Honda';
+        newCar2.model = 'Civic';
+        newCar2.year = 2003;
+        newCar2.dateMade = new Date();
+        newCar2.turboType = undefined; // test undefined scenario
+        newCar2.engine = { isPowerful: true };
+        newCar2.isOn = false;
+
+        let newCarIdentifier: AzureIdentifier = AzureIdentifier.fromObj(newCar);
+        let newCarIdentifier2: AzureIdentifier = AzureIdentifier.fromObj(newCar2);
+
+        let cache: AzureCacheInMemory<CarTest> = new AzureCacheInMemory<CarTest>(true, moment.duration(5, 'days'));
+        let cacheAny: any = <any>cache;
+
+        let testTableName: string = 'testCache';
+        cache.setItem(testTableName, newCar2, moment.duration(1, 'days'));
+        cache.setItem(testTableName, newCar, moment.duration(0));
+
+        expect(cacheAny.cache).not.toBeNull();
+        let tableCacheData: any = cacheAny.cache.tableDict[testTableName];
+        expect(tableCacheData).not.toBeNull();
+
+        let cachedCar: any = tableCacheData.entityDict[newCarIdentifier.cacheKey];
+        let cachedCarExpire: any = tableCacheData.expireDict[newCarIdentifier.cacheKey];
+
+        let cachedCar2: any = tableCacheData.entityDict[newCarIdentifier2.cacheKey];
+        let cachedCarExpire2: any = tableCacheData.expireDict[newCarIdentifier2.cacheKey];
+        expect(cachedCar).not.toBeUndefined();
+        expect(cachedCarExpire).not.toBeUndefined();
+
+        expect(cachedCar2).not.toBeUndefined();
+        expect(cachedCarExpire2).not.toBeUndefined();
+
+        tableCacheData.expireDict[newCarIdentifier.cacheKey] = moment().subtract(moment.duration(2, 'days'));
+
+        cacheAny.cleanup = jest.fn(cacheAny.cleanup);
+        cacheAny.nextCleanup = moment().subtract(moment.duration(1, 'days'));
+
+        cacheAny.cleanupIfTime().then((res: any) => {
+            expect(cacheAny.cleanup).toHaveBeenCalled();
+            
+            cachedCar = tableCacheData.entityDict[newCarIdentifier.cacheKey];
+            cachedCarExpire = tableCacheData.expireDict[newCarIdentifier.cacheKey];  
+            
+            expect(cachedCar).toBeUndefined();
+            expect(cachedCarExpire).toBeUndefined();
+
+            cachedCar = tableCacheData.entityDict[newCarIdentifier2.cacheKey];
+            cachedCarExpire = tableCacheData.expireDict[newCarIdentifier2.cacheKey];  
+
+            expect(cachedCar).not.toBeUndefined();
+            expect(cachedCarExpire).not.toBeUndefined();
+
+            tableCacheData.expireDict[newCarIdentifier2.cacheKey] = moment().subtract(moment.duration(2, 'days'));
+            cacheAny.nextCleanup = moment().subtract(moment.duration(1, 'days'));
+
+            cacheAny.cleanupIfTime().then((res2: any) => {
+                cachedCar = tableCacheData.entityDict[newCarIdentifier2.cacheKey];
+                cachedCarExpire = tableCacheData.expireDict[newCarIdentifier2.cacheKey];  
+
+                expect(cachedCar).toBeUndefined();
+                expect(cachedCarExpire).toBeUndefined();
+
+                done();
+            });
         });
     });
 
