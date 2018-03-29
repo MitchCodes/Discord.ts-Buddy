@@ -25,6 +25,21 @@ export class CommandResult implements ICommandResult {
         this.status = CommandResultStatus.pending;
         this.replyHandled = false;
     }
+
+    // tslint:disable-next-line:function-name
+    public static buildSimpleError(errorString: string, errorObj: Error = null): CommandResult {
+        let commandRes: CommandResult = new this();
+        commandRes.status = CommandResultStatus.error;
+        commandRes.message = errorString;
+
+        if (errorObj === null) {
+            commandRes.error = new Error(errorString);
+        } else {
+            commandRes.error = errorObj;
+        }
+
+        return commandRes;
+    }
 }
 
 export interface ICommand {
