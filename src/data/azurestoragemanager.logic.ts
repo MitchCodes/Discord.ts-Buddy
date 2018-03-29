@@ -37,6 +37,21 @@ export class AzureResult<T extends IAzureSavable> implements IAzureResult {
         this.status = AzureResultStatus.pending;
         this.data = [];
     }
+
+    // tslint:disable-next-line:function-name
+    public static buildSimpleError<T extends IAzureSavable>(errorString: string, errorObj: Error = null): AzureResult<T> {
+        let azureRes: AzureResult<T> = new this();
+        azureRes.status = AzureResultStatus.error;
+        azureRes.message = errorString;
+
+        if (errorObj === null) {
+            azureRes.error = new Error(errorString);
+        } else {
+            azureRes.error = errorObj;
+        }
+
+        return azureRes;
+    }
 }
 
 export interface IAzureBatch {
