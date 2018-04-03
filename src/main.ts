@@ -26,6 +26,7 @@ export { MultiGuildBot } from './logic/bots/multi-guild-bot';
 // Services
 export { MessengerService } from './logic/services/messenger.service';
 export { CommandPermissionsService } from './logic/services/permissions.service';
+export { PlaySoundService, PlaySoundServiceResult } from './logic/services/playsound.service';
 
 // Commands
 export { CommandParser } from './logic/command.logic';

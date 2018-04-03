@@ -24,6 +24,7 @@ If you are looking for a boilerplate example project that shows you how to use t
     * Semi-smart-caching feature which allows you to optionally cache your data for a certain time-span when querying.
         * Self-clean-up!
     * Definitely considered(ing) making this a separate package so you get two for one here if you use Azure Table Storage!
+* Sound play service that makes playing files to voice channels easy.
 
 ## Development Notes
 
