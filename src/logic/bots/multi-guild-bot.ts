@@ -3,7 +3,7 @@ import { Provider } from 'nconf';
 import { IDiscordBot, BotStatus, IAutoManagedBot } from '../../models/DiscordBot';
 import { ICommandPermissions, CommandPermissionFeedbackType, CommandPermissionResult, 
         CommandPermissionResultStatus } from '../../models/CommandPermission';
-import { Client, Guild, Message, TextChannel } from 'discord.js';
+import { Client, Guild, Message, TextChannel, VoiceChannel } from 'discord.js';
 
 // tslint:disable-next-line:no-submodule-imports
 import * as Rx from 'rxjs/Rx';
@@ -11,6 +11,9 @@ import { CommandParser } from '../command.logic';
 import { ICommand, ICommandResult, CommandResult, CommandResultStatus } from '../../models/Command';
 import { CommandPermissionsService } from '../services/permissions.service';
 import { MessengerService } from '../services/messenger.service';
+import { GuildCollection } from '../../main';
+import { VoiceChannelManager } from '../voicechannel.logic';
+import { ErrorWithCode } from '../../models/Errors';
 
 export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
     public guilds: Guild[] = [];
@@ -33,6 +36,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
     protected botClient: Client = null;
     protected status: BotStatus = BotStatus.inactive;
     protected commandParsers: CommandParser[] = [];
+    private voiceChannelManagers: GuildCollection<VoiceChannelManager> = new GuildCollection();
 
     constructor(passedBotName: string, passedBotToken: string, passedLogger: LoggerInstance, 
                 passedConf: Provider) {
@@ -112,6 +116,16 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
 
     public restartBotDueToError(err: string): void {
         this.onBotRequiresRestart.next(err);
+    }
+
+    public getVoiceChannelManager(guild: Guild): VoiceChannelManager {
+        let manager: VoiceChannelManager = this.voiceChannelManagers.item(guild);
+        if (manager === undefined || manager === null) {
+            manager = new VoiceChannelManager(this.logger, this.conf);
+            this.voiceChannelManagers.add(guild, manager);
+        }
+
+        return manager;
     }
 
     // tslint:disable-next-line:no-empty
