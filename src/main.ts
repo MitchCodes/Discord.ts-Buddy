@@ -7,6 +7,8 @@ export { CommandPermissionType, CommandPermissionFeedbackType, CommandPermission
         CommandPermissionResult } from './models/CommandPermission';
 export { IDiscordBot, IAutoManagedBot, BotStatus } from './models/DiscordBot';
 export { IKeyedCollection, KeyedCollection, GuildCollection } from './models/GuildCollection';
+export { ErrorWithCode, GenericErrorCodes } from './models/Errors';
+export { VoiceErrorCodes } from './models/Voice';
 
 // Azure Storage Manager
 export { AzureDictionary, IAzureSavable, AzureResultStatus, IAzureResult, AzureResult,
@@ -18,6 +20,7 @@ export { AzureDictionary, IAzureSavable, AzureResultStatus, IAzureResult, AzureR
 export { DiscordHelper } from './logic/helpers/discord.helper';
 export { ModelComparer } from './logic/helpers/modelcompare.helper';
 export { StringHelper } from './logic/helpers/string.helper';
+export { BasicDictionary, StreamDispatcherError, PlaySoundResult, VoiceChannelManager } from './logic/voicechannel.logic';
 
 // Bots
 export { BotManager } from './logic/botmanager.logic';
@@ -26,7 +29,6 @@ export { MultiGuildBot } from './logic/bots/multi-guild-bot';
 // Services
 export { MessengerService } from './logic/services/messenger.service';
 export { CommandPermissionsService } from './logic/services/permissions.service';
-export { PlaySoundService, PlaySoundServiceResult } from './logic/services/playsound.service';
 
 // Commands
 export { CommandParser } from './logic/command.logic';
