@@ -1,4 +1,5 @@
 import { Message } from 'discord.js';
+import { IDiscordBot } from '../main';
 
 export enum CommandPermissionType {
     user,
@@ -29,6 +30,7 @@ export interface ICommandPermissions {
     permissionRequirements: CommandPermissionRequirementSettings;
     permissionFailReplyType: CommandPermissionFeedbackType;
     getPermissionFailReplyText(msg: Message): string;
+    setupPermissions(bot: IDiscordBot, msg: Message): void;
 }
 
 export enum CommandPermissionResultStatus {

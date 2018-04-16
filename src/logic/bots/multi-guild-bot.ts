@@ -148,8 +148,9 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         return new Promise<ICommandResult>((resolve : (val: ICommandResult) => void, reject : (val: ICommandResult) => void) => {
             // handle permissions
             let commandAny: any = <any>command;
-            if (commandAny.permissionSettings !== undefined) {
+            if (commandAny.permissionRequirements !== undefined) {
                 let commandPermissions = <ICommandPermissions>commandAny;
+                commandPermissions.setupPermissions(this, msg);
                 let permissionService: CommandPermissionsService = new CommandPermissionsService();
                 
                 let permissionResult: CommandPermissionResult = permissionService.hasPermissions(commandPermissions, msg);
