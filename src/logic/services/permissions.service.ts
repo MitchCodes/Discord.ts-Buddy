@@ -28,12 +28,12 @@ export class CommandPermissionsService {
                     }
                     break;
                 case CommandPermissionType.textchannel:
-                    if (this.msgIsInTextChannelById(msg, requirement.identifier)) {
+                    if (!this.msgIsInTextChannelById(msg, requirement.identifier)) {
                         returnResult.permissionStatus = CommandPermissionResultStatus.noPermission;
                     }
                     break;
                 case CommandPermissionType.anytextchannel:
-                    if (this.msgIsInTextChannel(msg)) {
+                    if (!this.msgIsInTextChannel(msg)) {
                         returnResult.permissionStatus = CommandPermissionResultStatus.noPermission;
                     }
                     break;
