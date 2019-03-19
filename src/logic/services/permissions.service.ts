@@ -47,50 +47,52 @@ export class CommandPermissionsService {
             }
         }
 
-        returnResult.permissionStatus = CommandPermissionResultStatus.noPermission;
-        let anyRequirementMet: boolean = false;
-        for (let requirement of command.permissionRequirements.anyRequirements) {
-            switch (requirement.permissionType) {
-                case CommandPermissionType.guild:
-                    if (this.isGuild(guildMember, requirement.identifier)) {
-                        anyRequirementMet = true;
-                    } else {
-                        returnResult.failedCommandRequirements.push(requirement);
-                    }
-                    break;
-                case CommandPermissionType.role:
-                    if (this.userIsInRole(guildMember, requirement.identifier)) {
-                        anyRequirementMet = true;
-                    } else {
-                        returnResult.failedCommandRequirements.push(requirement);
-                    }
-                    break;
-                case CommandPermissionType.user:
-                    if (this.userIsCertainUser(guildMember, requirement.identifier)) {
-                        anyRequirementMet = true;
-                    } else {
-                        returnResult.failedCommandRequirements.push(requirement);
-                    }
-                    break;
-                case CommandPermissionType.textchannel:
-                    if (this.msgIsInTextChannelById(msg, requirement.identifier)) {
-                        anyRequirementMet = true;
-                    } else {
-                        returnResult.failedCommandRequirements.push(requirement);
-                    }
-                    break;
-                case CommandPermissionType.anytextchannel:
-                    if (this.msgIsInTextChannel(msg)) {
-                        anyRequirementMet = true;
-                    } else {
-                        returnResult.failedCommandRequirements.push(requirement);
-                    }
-                    break;
-                default:
-            }
+        if (command.permissionRequirements.anyRequirements.length > 0) {
+            returnResult.permissionStatus = CommandPermissionResultStatus.noPermission;
+            let anyRequirementMet: boolean = false;
+            for (let requirement of command.permissionRequirements.anyRequirements) {
+                switch (requirement.permissionType) {
+                    case CommandPermissionType.guild:
+                        if (this.isGuild(guildMember, requirement.identifier)) {
+                            anyRequirementMet = true;
+                        } else {
+                            returnResult.failedCommandRequirements.push(requirement);
+                        }
+                        break;
+                    case CommandPermissionType.role:
+                        if (this.userIsInRole(guildMember, requirement.identifier)) {
+                            anyRequirementMet = true;
+                        } else {
+                            returnResult.failedCommandRequirements.push(requirement);
+                        }
+                        break;
+                    case CommandPermissionType.user:
+                        if (this.userIsCertainUser(guildMember, requirement.identifier)) {
+                            anyRequirementMet = true;
+                        } else {
+                            returnResult.failedCommandRequirements.push(requirement);
+                        }
+                        break;
+                    case CommandPermissionType.textchannel:
+                        if (this.msgIsInTextChannelById(msg, requirement.identifier)) {
+                            anyRequirementMet = true;
+                        } else {
+                            returnResult.failedCommandRequirements.push(requirement);
+                        }
+                        break;
+                    case CommandPermissionType.anytextchannel:
+                        if (this.msgIsInTextChannel(msg)) {
+                            anyRequirementMet = true;
+                        } else {
+                            returnResult.failedCommandRequirements.push(requirement);
+                        }
+                        break;
+                    default:
+                }
 
-            if (anyRequirementMet) {
-                returnResult.permissionStatus = CommandPermissionResultStatus.hasPermission;
+                if (anyRequirementMet) {
+                    returnResult.permissionStatus = CommandPermissionResultStatus.hasPermission;
+                }
             }
         }
         
