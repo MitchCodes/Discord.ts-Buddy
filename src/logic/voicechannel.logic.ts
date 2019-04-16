@@ -128,7 +128,7 @@ export class VoiceChannelManager {
             });
 
             let createdDispatcher: StreamDispatcher = this.activeVoiceConnection.playStream(stream);
-
+            this.streamDispatchers[dispatchKey] = createdDispatcher;
             playSoundResult.streamDispatcher = createdDispatcher;
             playSoundResult.streamDispatcher.once('end', () => {
                 playSoundResult.onSoundFinishSubject.next(playSoundResult.streamDispatcher);
@@ -285,8 +285,11 @@ export class VoiceChannelManager {
     }
 
     private uuidv4(): string {
+        // tslint:disable-next-line:typedef no-function-expression
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            // tslint:disable-next-line:triple-equals no-bitwise no-var-keyword insecure-random one-variable-per-declaration
             var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            
             return v.toString(16);
         });
     }
