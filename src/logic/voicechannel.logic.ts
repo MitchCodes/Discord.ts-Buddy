@@ -6,6 +6,7 @@ import { Provider } from 'nconf';
 import { ErrorWithCode } from '../models/Errors';
 import { VoiceErrorCodes } from '../models/Voice';
 import * as fs from 'fs';
+import { Readable } from 'stream';
 
 export interface BasicDictionary<T> {
     [K: string]: T;
@@ -27,7 +28,7 @@ export class PlaySoundResult {
 
 export class VoiceChannelManager {
     public autoDisconnect: boolean = false;
-    public allowPlayNewFiles: boolean = true;
+    public allowPlayNew: boolean = true;
     public onConnectionErrorSubject: Rx.Subject<Error> = new Rx.Subject<Error>();
     public onConnectionDisconnectSubject: Rx.Subject<VoiceConnection> = new Rx.Subject<VoiceConnection>();
     private logger: LoggerInstance = null;
@@ -104,8 +105,54 @@ export class VoiceChannelManager {
         return false;
     }
 
+    public playStream(stream: Readable): Promise<PlaySoundResult | ErrorWithCode> {
+        if (!this.allowPlayNew) {
+            return Promise.reject(ErrorWithCode.buildSimpleError(VoiceErrorCodes.CANNOT_PLAY_STREAM_NOW, 'This manager is configured to not allow new sounds to play now'));
+        }
+
+        if (!this.isActive) {
+            return Promise.reject(ErrorWithCode.buildSimpleError(VoiceErrorCodes.NO_CONNECTION, 'This manager is not connected to a voice channel'));
+        }
+
+        return new Promise<PlaySoundResult | ErrorWithCode>((resolve : (val: PlaySoundResult) => void, reject : (val: ErrorWithCode) => void) => {
+            let playSoundResult: PlaySoundResult = new PlaySoundResult();
+            playSoundResult.onSoundFinishSubject = new Rx.Subject<StreamDispatcher>();
+            playSoundResult.onSoundErrorSubject = new Rx.Subject<StreamDispatcherError>();
+            let dispatchKey: string = this.uuidv4();
+
+            playSoundResult.onSoundErrorSubject.subscribe((soundErr: StreamDispatcherError) => {
+                this.handleStreamDispatcherEnd(dispatchKey);
+            });
+            playSoundResult.onSoundFinishSubject.subscribe((soundFinish: StreamDispatcher) => {
+                this.handleStreamDispatcherEnd(dispatchKey);
+            });
+
+            let createdDispatcher: StreamDispatcher = this.activeVoiceConnection.playStream(stream);
+
+            playSoundResult.streamDispatcher = createdDispatcher;
+            playSoundResult.streamDispatcher.once('end', () => {
+                playSoundResult.onSoundFinishSubject.next(playSoundResult.streamDispatcher);
+            });
+
+            playSoundResult.streamDispatcher.once('error', (soundDispatchErr: Error) => {
+                try {
+                    playSoundResult.streamDispatcher.end();
+                } catch (tryEndErr) {
+                    this.logger.error('Error ending stream dispatcher on the sound being played erroring out. Sound dispatch error: ' 
+                                        + soundDispatchErr);
+                }
+                let streamDispatcherError: StreamDispatcherError = new StreamDispatcherError();
+                streamDispatcherError.dispatcher = playSoundResult.streamDispatcher;
+                streamDispatcherError.error = soundDispatchErr;
+                playSoundResult.onSoundErrorSubject.next(streamDispatcherError);
+            });
+
+            resolve(playSoundResult);
+        });
+    }
+
     public playLocalFile(file: string): Promise<PlaySoundResult | ErrorWithCode> {
-        if (!this.allowPlayNewFiles) {
+        if (!this.allowPlayNew) {
             return Promise.reject(ErrorWithCode.buildSimpleError(VoiceErrorCodes.CANNOT_PLAY_FILE_NOW, 'This manager is configured to not allow new files to play now'));
         }
 
@@ -210,7 +257,7 @@ export class VoiceChannelManager {
         });
     }
 
-    private handleStreamDispatcherEnd(key: string): void {
+    private handleStreamDispatcherEnd(key: string, isStream: boolean = false): void {
         let streamDispatcher: StreamDispatcher = this.streamDispatchers[key];
         if (streamDispatcher !== undefined && streamDispatcher !== null) {
             this.streamDispatchers[key] = undefined;
@@ -220,7 +267,11 @@ export class VoiceChannelManager {
                 let dispatcherFiles: string[] = Object.keys(this.streamDispatchers);
                 if (dispatcherFiles.length === 0) {
                     this.leaveChannel().catch((err: Error) => {
-                        this.logger.error('Error leaving channel automatically when file ' + key + ' finished playing. Error: ' + err);
+                        if (isStream) {
+                            this.logger.error('Error leaving channel automatically when stream ' + key + ' finished playing. Error: ' + err);
+                        } else {
+                            this.logger.error('Error leaving channel automatically when file ' + key + ' finished playing. Error: ' + err);
+                        }
                     });
                 }
             }
@@ -231,5 +282,12 @@ export class VoiceChannelManager {
         this.activeVoiceChannel = null;
         this.activeVoiceReceivers = [];
         this.activeVoiceConnection = null;
+    }
+
+    private uuidv4(): string {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
     }
 }
