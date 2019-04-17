@@ -245,36 +245,36 @@ export class VoiceChannelManager {
             let tempVoiceConnection: VoiceConnection = this.activeVoiceConnection;
             let tempVoiceChannel: VoiceChannel = this.activeVoiceChannel;
             this.resetActiveVoiceSettings();
-            let uuidConfirmDisconnect: string = this.uuidv4();
-            this.connectionDisconnections[uuidConfirmDisconnect] = false;
-            this.activeVoiceConnection.on('disconnect', () => {
-                this.connectionDisconnections[uuidConfirmDisconnect] = true;
-            });
+            // let uuidConfirmDisconnect: string = this.uuidv4();
+            // this.connectionDisconnections[uuidConfirmDisconnect] = false;
+            // this.activeVoiceConnection.on('disconnect', () => {
+            //     this.connectionDisconnections[uuidConfirmDisconnect] = true;
+            // });
             this.activeVoiceConnection.disconnect();
             resolve(true);
             this.onConnectionDisconnectSubject.next(tempVoiceConnection);
         });
     }
 
-    private confirmLeft(uuidDisconnect: string, voiceChannel: VoiceChannel, voiceConnection: VoiceConnection, numberAttempts: number = 0): void {
-        if (this.connectionDisconnections[uuidDisconnect] !== undefined && this.connectionDisconnections !== null) {
-            let disconnected: boolean = this.connectionDisconnections[uuidDisconnect];
-            if (disconnected) {
-                delete this.connectionDisconnections[uuidDisconnect];
-            } else {
-                let newAttempts: number = numberAttempts + 1;
-                if (newAttempts > 3) {
-                    this.logger.error('Having an issue disconnecting from ' + voiceChannel.name, )
-                }
-                if (Object.keys(this.streamDispatchers).length === 0 && (this.activeVoiceChannel === undefined || this.activeVoiceChannel === null)) {
-                    if (voiceChannel.connection !== undefined && voiceChannel.connection !== null) {
-                        voiceChannel.leave();
-                    }
+    // private confirmLeft(uuidDisconnect: string, voiceChannel: VoiceChannel, voiceConnection: VoiceConnection, numberAttempts: number = 0): void {
+    //     if (this.connectionDisconnections[uuidDisconnect] !== undefined && this.connectionDisconnections !== null) {
+    //         let disconnected: boolean = this.connectionDisconnections[uuidDisconnect];
+    //         if (disconnected) {
+    //             delete this.connectionDisconnections[uuidDisconnect];
+    //         } else {
+    //             let newAttempts: number = numberAttempts + 1;
+    //             if (newAttempts > 3) {
+    //                 this.logger.error('Having an issue disconnecting from ' + voiceChannel.name, )
+    //             }
+    //             if (Object.keys(this.streamDispatchers).length === 0 && (this.activeVoiceChannel === undefined || this.activeVoiceChannel === null)) {
+    //                 if (voiceChannel.connection !== undefined && voiceChannel.connection !== null) {
+    //                     voiceChannel.leave();
+    //                 }
                     
-                }
-            }
-        }
-    }
+    //             }
+    //         }
+    //     }
+    // }
 
     private setupBasicSubscribers(): void {
         this.onConnectionErrorSubject.subscribe((err: Error) => {
