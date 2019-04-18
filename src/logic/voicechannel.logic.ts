@@ -1,7 +1,7 @@
 import { VoiceChannel, VoiceConnection, StreamDispatcher, VoiceReceiver } from 'discord.js';
 // tslint:disable-next-line:no-submodule-imports
 import * as Rx from 'rxjs/Rx';
-import { LoggerInstance } from 'winston';
+import { Logger, createLogger, transports } from 'winston';
 import { Provider } from 'nconf';
 import { ErrorWithCode } from '../models/Errors';
 import { VoiceErrorCodes } from '../models/Voice';
@@ -31,7 +31,7 @@ export class VoiceChannelManager {
     public allowPlayNew: boolean = true;
     public onConnectionErrorSubject: Rx.Subject<Error> = new Rx.Subject<Error>();
     public onConnectionDisconnectSubject: Rx.Subject<VoiceConnection> = new Rx.Subject<VoiceConnection>();
-    private logger: LoggerInstance = null;
+    private logger: Logger = null;
     private configProvider: Provider = null;
     private activeVoiceChannel: VoiceChannel = null;
     private activeVoiceConnection: VoiceConnection = null;
@@ -42,7 +42,7 @@ export class VoiceChannelManager {
         return (this.activeVoiceConnection !== undefined && this.activeVoiceConnection !== null);
     }
 
-    public constructor(logger: LoggerInstance, configProvider: Provider) {
+    public constructor(logger: Logger, configProvider: Provider) {
         this.logger = logger;
         this.configProvider = configProvider;
         this.setupBasicSubscribers();

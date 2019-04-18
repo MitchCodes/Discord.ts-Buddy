@@ -2,16 +2,16 @@ import { IDiscordBot, BotStatus, IAutoManagedBot } from '../models/DiscordBot';
 import { BotRestartSettings } from '../models/BotRestartSettings';
 // tslint:disable-next-line:no-submodule-imports
 import * as Rx from 'rxjs/Rx';
-import { LoggerInstance } from 'winston';
+import { Logger, createLogger, transports } from 'winston';
 
 export class BotManager<T extends IDiscordBot & IAutoManagedBot> {
     public onBotMaxRestartAttempts: Rx.Subject<boolean> = new Rx.Subject<boolean>();
     public bot: T = null;
     private botStartAttempts: number = 0;
     private botRestartSettings: BotRestartSettings = null;
-    private logger: LoggerInstance = null;
+    private logger: Logger = null;
     
-    public constructor(bot: T, botRestartSettings: BotRestartSettings, logger: LoggerInstance) {
+    public constructor(bot: T, botRestartSettings: BotRestartSettings, logger: Logger) {
         this.bot = bot;
         this.botRestartSettings = botRestartSettings;
         this.logger = logger;

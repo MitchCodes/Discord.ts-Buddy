@@ -2,7 +2,7 @@
 import { AzureStorageManager, IAzureSavable, AzureResult, IAzureResult, 
          AzureResultStatus, AzureBatchResult, AzureBatchResults, 
          AzureBatchResultStatus, AzureCacheInMemory, AzureIdentifier } from '../../src/data/azurestoragemanager.logic';
-import * as winston from 'winston';
+import { Logger, createLogger, transports } from 'winston';
 import * as nconf from 'nconf';
 import { ModelComparer } from '../../src/logic/helpers/modelcompare.helper';
 import { TableQuery } from 'azure-storage';
@@ -39,7 +39,7 @@ export class CarTest implements IAzureSavable {
 }
 
 describe('azure-storage-manager-tests', () => {
-    let logger: winston.LoggerInstance;
+    let logger: Logger;
     let testModel: CarTest;
     let convObject: Object = null;
     let convertedTestModel: CarTest;
@@ -77,10 +77,10 @@ describe('azure-storage-manager-tests', () => {
         testModel.engine = { isPowerful: true };
         testModel.classVersion = 1;
 
-        logger = new winston.Logger({
+        logger = createLogger({
             level: 'debug',
             transports: [
-              new (winston.transports.Console)(),
+              new transports.Console(),
             ],
           });
 

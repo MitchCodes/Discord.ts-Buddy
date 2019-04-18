@@ -1,11 +1,11 @@
-import * as wins from 'winston';
+import { Logger, createLogger, transports } from 'winston';
 import * as nconf from 'nconf';
 import { Client, Guild, VoiceChannel, VoiceConnection } from 'discord.js';
 import { MultiGuildBot } from '../../src/logic/bots/multi-guild-bot';
 import { doesNotThrow } from 'assert';
 
 describe('multi-guild-bot tests', () => {
-    let logger: wins.LoggerInstance;
+    let logger: Logger;
     let mainBotToken: string = '';
     let mainBotClient: MultiGuildBot = null;
     let mainBotTestGuild: Guild = null;
@@ -38,10 +38,10 @@ describe('multi-guild-bot tests', () => {
         guildTestOnId = nconf.get('test:bots:testDiscordGuildId');
         voiceChannelName = nconf.get('test:bots:testDiscordVoiceChannelName');
 
-        logger = new wins.Logger({
+        logger = createLogger({
             level: 'debug',
             transports: [
-              new (wins.transports.Console)(),
+              new transports.Console(),
             ],
           });
         

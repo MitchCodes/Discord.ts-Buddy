@@ -1,4 +1,4 @@
-import * as wins from 'winston';
+import { Logger, createLogger, transports } from 'winston';
 import * as nconf from 'nconf';
 import { CommandParser } from '../src/logic/command.logic';
 import { TestCommand } from './models/testcommand';
@@ -19,10 +19,10 @@ describe('maincontroller tests', () => {
       botTokens: [],
     });
 
-    let logger = new wins.Logger({
+    let logger = createLogger({
       level: 'debug',
       transports: [
-        new (wins.transports.Console)(),
+        new transports.Console(),
       ],
     });
   });

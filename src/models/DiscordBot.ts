@@ -1,11 +1,11 @@
 // tslint:disable-next-line:no-submodule-imports
 import * as Rx from 'rxjs/Rx';
-import { LoggerInstance } from 'winston';
+import { Logger, createLogger, transports } from 'winston';
 
 export interface IDiscordBot {
     name: string;
     color: number;
-    logger: LoggerInstance;
+    logger: Logger;
 
     setupBot(): void;
     startBot(): Promise<string>;

@@ -1,4 +1,4 @@
-import { LoggerInstance } from 'winston';
+import { Logger, createLogger, transports } from 'winston';
 import { Provider } from 'nconf';
 import { IDiscordBot, BotStatus, IAutoManagedBot } from '../../models/DiscordBot';
 import { ICommandPermissions, CommandPermissionFeedbackType, CommandPermissionResult, 
@@ -30,7 +30,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
     public onBotWarning: Rx.Subject<string> = new Rx.Subject<string>();
     public onBotJoinGuild: Rx.Subject<Guild> = new Rx.Subject<Guild>();
     public onBotLeaveGuild: Rx.Subject<Guild> = new Rx.Subject<Guild>();
-    public logger: LoggerInstance = null;
+    public logger: Logger = null;
     protected conf: Provider = null;
     protected botToken: string = '';
     protected botClient: Client = null;
@@ -38,7 +38,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
     protected commandParsers: CommandParser[] = [];
     private voiceChannelManagers: GuildCollection<VoiceChannelManager> = new GuildCollection();
 
-    constructor(passedBotName: string, passedBotToken: string, passedLogger: LoggerInstance, 
+    constructor(passedBotName: string, passedBotToken: string, passedLogger: Logger, 
                 passedConf: Provider) {
         this.name = passedBotName;
         this.botToken = passedBotToken;
