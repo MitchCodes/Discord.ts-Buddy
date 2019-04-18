@@ -121,32 +121,11 @@ export class VoiceChannelManager {
             playSoundResult.onSoundErrorSubject = new Rx.Subject<StreamDispatcherError>();
             let dispatchKey: string = this.uuidv4();
 
-            playSoundResult.onSoundErrorSubject.subscribe((soundErr: StreamDispatcherError) => {
-                this.handleStreamDispatcherEnd(dispatchKey);
-            });
-            playSoundResult.onSoundFinishSubject.subscribe((soundFinish: StreamDispatcher) => {
-                this.handleStreamDispatcherEnd(dispatchKey);
-            });
-
             let createdDispatcher: StreamDispatcher = this.activeVoiceConnection.playStream(stream);
             this.streamDispatchers[dispatchKey] = createdDispatcher;
             playSoundResult.streamDispatcher = createdDispatcher;
-            playSoundResult.streamDispatcher.once('end', () => {
-                playSoundResult.onSoundFinishSubject.next(playSoundResult.streamDispatcher);
-            });
-
-            playSoundResult.streamDispatcher.once('error', (soundDispatchErr: Error) => {
-                try {
-                    playSoundResult.streamDispatcher.end();
-                } catch (tryEndErr) {
-                    this.logger.error('Error ending stream dispatcher on the sound being played erroring out. Sound dispatch error: ' 
-                                        + soundDispatchErr);
-                }
-                let streamDispatcherError: StreamDispatcherError = new StreamDispatcherError();
-                streamDispatcherError.dispatcher = playSoundResult.streamDispatcher;
-                streamDispatcherError.error = soundDispatchErr;
-                playSoundResult.onSoundErrorSubject.next(streamDispatcherError);
-            });
+            
+            this.setupStreamDispatcherLifecycle(dispatchKey, createdDispatcher, playSoundResult.onSoundFinishSubject, playSoundResult.onSoundErrorSubject);
 
             resolve(playSoundResult);
         });
@@ -174,32 +153,12 @@ export class VoiceChannelManager {
             playSoundResult.onSoundFinishSubject = new Rx.Subject<StreamDispatcher>();
             playSoundResult.onSoundErrorSubject = new Rx.Subject<StreamDispatcherError>();
             let dispatchKey: string = file;
-
-            playSoundResult.onSoundErrorSubject.subscribe((soundErr: StreamDispatcherError) => {
-                this.handleStreamDispatcherEnd(file);
-            });
-            playSoundResult.onSoundFinishSubject.subscribe((soundFinish: StreamDispatcher) => {
-                this.handleStreamDispatcherEnd(file);
-            });
             
             let createdDispatcher: StreamDispatcher = this.activeVoiceConnection.playFile(file);
             this.streamDispatchers[file] = createdDispatcher;
             playSoundResult.streamDispatcher = createdDispatcher;
-            playSoundResult.streamDispatcher.once('end', () => {
-                playSoundResult.onSoundFinishSubject.next(playSoundResult.streamDispatcher);
-            });
-            playSoundResult.streamDispatcher.once('error', (soundDispatchErr: Error) => {
-                try {
-                    playSoundResult.streamDispatcher.end();
-                } catch (tryEndErr) {
-                    this.logger.error('Error ending stream dispatcher on the sound being played erroring out. Sound dispatch error: ' 
-                                        + soundDispatchErr);
-                }
-                let streamDispatcherError: StreamDispatcherError = new StreamDispatcherError();
-                streamDispatcherError.dispatcher = playSoundResult.streamDispatcher;
-                streamDispatcherError.error = soundDispatchErr;
-                playSoundResult.onSoundErrorSubject.next(streamDispatcherError);
-            });
+
+            this.setupStreamDispatcherLifecycle(dispatchKey, createdDispatcher, playSoundResult.onSoundFinishSubject, playSoundResult.onSoundErrorSubject);
 
             resolve(playSoundResult);
         });
@@ -243,38 +202,42 @@ export class VoiceChannelManager {
 
         return new Promise<boolean | Error>((resolve : (val: boolean) => void, reject : (val: Error) => void) => {
             let tempVoiceConnection: VoiceConnection = this.activeVoiceConnection;
-            let tempVoiceChannel: VoiceChannel = this.activeVoiceChannel;
             this.resetActiveVoiceSettings();
-            // let uuidConfirmDisconnect: string = this.uuidv4();
-            // this.connectionDisconnections[uuidConfirmDisconnect] = false;
-            // this.activeVoiceConnection.on('disconnect', () => {
-            //     this.connectionDisconnections[uuidConfirmDisconnect] = true;
-            // });
             this.activeVoiceConnection.disconnect();
             resolve(true);
             this.onConnectionDisconnectSubject.next(tempVoiceConnection);
         });
     }
 
-    // private confirmLeft(uuidDisconnect: string, voiceChannel: VoiceChannel, voiceConnection: VoiceConnection, numberAttempts: number = 0): void {
-    //     if (this.connectionDisconnections[uuidDisconnect] !== undefined && this.connectionDisconnections !== null) {
-    //         let disconnected: boolean = this.connectionDisconnections[uuidDisconnect];
-    //         if (disconnected) {
-    //             delete this.connectionDisconnections[uuidDisconnect];
-    //         } else {
-    //             let newAttempts: number = numberAttempts + 1;
-    //             if (newAttempts > 3) {
-    //                 this.logger.error('Having an issue disconnecting from ' + voiceChannel.name, )
-    //             }
-    //             if (Object.keys(this.streamDispatchers).length === 0 && (this.activeVoiceChannel === undefined || this.activeVoiceChannel === null)) {
-    //                 if (voiceChannel.connection !== undefined && voiceChannel.connection !== null) {
-    //                     voiceChannel.leave();
-    //                 }
-                    
-    //             }
-    //         }
-    //     }
-    // }
+    private setupStreamDispatcherLifecycle(dispatcherKey: string, dispatcher: StreamDispatcher, finishSubject: Rx.Subject<StreamDispatcher>, errorSubject: Rx.Subject<StreamDispatcherError>): void {
+        errorSubject.subscribe((soundErr: StreamDispatcherError) => {
+            this.handleStreamDispatcherEnd(dispatcherKey);
+        });
+        finishSubject.subscribe((soundFinish: StreamDispatcher) => {
+            this.handleStreamDispatcherEnd(dispatcherKey);
+        });
+
+        dispatcher.on('debug', (msg: string) => {
+            this.logger.debug('StreamDispatcher Debug for key ' + dispatcherKey + ': ' + msg);
+        });
+        
+        dispatcher.once('end', () => {
+            finishSubject.next(dispatcher);
+        });
+
+        dispatcher.once('error', (soundDispatchErr: Error) => {
+            try {
+                dispatcher.end();
+            } catch (tryEndErr) {
+                this.logger.error('Error ending dispatcher on the sound being played erroring out. Sound dispatch error: ' 
+                                    + soundDispatchErr);
+            }
+            let streamDispatcherError: StreamDispatcherError = new StreamDispatcherError();
+            streamDispatcherError.dispatcher = dispatcher;
+            streamDispatcherError.error = soundDispatchErr;
+            errorSubject.next(streamDispatcherError);
+        });
+    }
 
     private setupBasicSubscribers(): void {
         this.onConnectionErrorSubject.subscribe((err: Error) => {
