@@ -7,6 +7,7 @@ import { ErrorWithCode } from '../models/Errors';
 import { VoiceErrorCodes } from '../models/Voice';
 import * as fs from 'fs';
 import { Readable } from 'stream';
+import { clearTimeout, setTimeout } from 'timers';
 
 export interface BasicDictionary<T> {
     [K: string]: T;
@@ -29,6 +30,7 @@ export class PlaySoundResult {
 export class VoiceChannelManager {
     public autoDisconnect: boolean = false;
     public allowPlayNew: boolean = true;
+    public leaveChannelFailTimerMs: number = 15000;
     public onConnectionErrorSubject: Rx.Subject<Error> = new Rx.Subject<Error>();
     public onConnectionDisconnectSubject: Rx.Subject<VoiceConnection> = new Rx.Subject<VoiceConnection>();
     private logger: Logger = null;
@@ -38,6 +40,7 @@ export class VoiceChannelManager {
     private activeVoiceReceivers: VoiceReceiver[] = [];
     private streamDispatchers: BasicDictionary<StreamDispatcher> = {};
     private connectionDisconnections: BasicDictionary<boolean> = {};
+
     private get isActive(): boolean {
         return (this.activeVoiceConnection !== undefined && this.activeVoiceConnection !== null);
     }
@@ -66,10 +69,10 @@ export class VoiceChannelManager {
         }
 
         return new Promise<VoiceConnection | any>((resolve : (val: VoiceConnection) => void, reject : (val: any) => void) => {
-            this.activeVoiceChannel = voiceChannel;
             this.autoDisconnect = autoDisconnect;
             this.activeVoiceReceivers = [];
             this.activeVoiceChannel.join().then((res: VoiceConnection) => {
+                this.activeVoiceChannel = voiceChannel;
                 this.activeVoiceConnection = res;
 
                 this.activeVoiceConnection.on('error', (err: Error) => {
@@ -106,7 +109,7 @@ export class VoiceChannelManager {
         return false;
     }
 
-    public playStream(stream: Readable): Promise<PlaySoundResult | ErrorWithCode> {
+    public playStream(stream: Readable, timeoutMs: number = -1): Promise<PlaySoundResult | ErrorWithCode> {
         if (!this.allowPlayNew) {
             return Promise.reject(ErrorWithCode.buildSimpleError(VoiceErrorCodes.CANNOT_PLAY_STREAM_NOW, 'This manager is configured to not allow new sounds to play now'));
         }
@@ -125,13 +128,13 @@ export class VoiceChannelManager {
             this.streamDispatchers[dispatchKey] = createdDispatcher;
             playSoundResult.streamDispatcher = createdDispatcher;
             
-            this.setupStreamDispatcherLifecycle(dispatchKey, createdDispatcher, playSoundResult.onSoundFinishSubject, playSoundResult.onSoundErrorSubject);
+            this.setupStreamDispatcherLifecycle(dispatchKey, createdDispatcher, playSoundResult.onSoundFinishSubject, playSoundResult.onSoundErrorSubject, true, timeoutMs);
 
             resolve(playSoundResult);
         });
     }
 
-    public playLocalFile(file: string): Promise<PlaySoundResult | ErrorWithCode> {
+    public playLocalFile(file: string, timeoutMs: number = -1): Promise<PlaySoundResult | ErrorWithCode> {
         if (!this.allowPlayNew) {
             return Promise.reject(ErrorWithCode.buildSimpleError(VoiceErrorCodes.CANNOT_PLAY_FILE_NOW, 'This manager is configured to not allow new files to play now'));
         }
@@ -155,10 +158,10 @@ export class VoiceChannelManager {
             let dispatchKey: string = file;
             
             let createdDispatcher: StreamDispatcher = this.activeVoiceConnection.playFile(file);
-            this.streamDispatchers[file] = createdDispatcher;
+            this.streamDispatchers[dispatchKey] = createdDispatcher;
             playSoundResult.streamDispatcher = createdDispatcher;
 
-            this.setupStreamDispatcherLifecycle(dispatchKey, createdDispatcher, playSoundResult.onSoundFinishSubject, playSoundResult.onSoundErrorSubject);
+            this.setupStreamDispatcherLifecycle(dispatchKey, createdDispatcher, playSoundResult.onSoundFinishSubject, playSoundResult.onSoundErrorSubject, false, timeoutMs);
 
             resolve(playSoundResult);
         });
@@ -200,22 +203,69 @@ export class VoiceChannelManager {
             return Promise.reject(new Error('This manager is not connected to a voice channel'));
         }
 
+        if (this.activeVoiceConnection === undefined || this.activeVoiceConnection === null) {
+            return Promise.reject(new Error('This manager does not have an active voice connection'));
+        }
+
         return new Promise<boolean | Error>((resolve : (val: boolean) => void, reject : (val: Error) => void) => {
             let tempVoiceConnection: VoiceConnection = this.activeVoiceConnection;
-            this.resetActiveVoiceSettings();
+
+            let leaveTimer: NodeJS.Timer = setTimeout(() => {
+                reject(new Error('The bot has failed to disconnect within ' + this.leaveChannelFailTimerMs + ' milliseconds.'));
+                leaveTimer = null;
+            }, 15000);
+
+            tempVoiceConnection.on('disconnect', () => {
+                if (leaveTimer !== undefined && leaveTimer !== null) {
+                    clearTimeout(leaveTimer);
+                    leaveTimer = null;
+                }
+
+                this.resetActiveVoiceSettings();
+                this.onConnectionDisconnectSubject.next(tempVoiceConnection);
+                resolve(true);
+            });
+
             this.activeVoiceConnection.disconnect();
-            resolve(true);
-            this.onConnectionDisconnectSubject.next(tempVoiceConnection);
         });
     }
 
-    private setupStreamDispatcherLifecycle(dispatcherKey: string, dispatcher: StreamDispatcher, finishSubject: Rx.Subject<StreamDispatcher>, errorSubject: Rx.Subject<StreamDispatcherError>): void {
-        errorSubject.subscribe((soundErr: StreamDispatcherError) => {
-            this.handleStreamDispatcherEnd(dispatcherKey);
+    private setupStreamDispatcherLifecycle(dispatcherKey: string, dispatcher: StreamDispatcher, finishSubject: Rx.Subject<StreamDispatcher>, errorSubject: Rx.Subject<StreamDispatcherError>, isStream: boolean = false, timeoutMs: number = -1): void {
+        let errorSubscription: Rx.Subscription = null;
+        let finishSubscription: Rx.Subscription = null;
+        let timer: NodeJS.Timer = null;
+
+        finishSubscription = finishSubject.subscribe((soundFinish: StreamDispatcher) => {
+            this.handleStreamDispatcherEnd(dispatcherKey, isStream, timer);
+            finishSubscription.unsubscribe();
         });
-        finishSubject.subscribe((soundFinish: StreamDispatcher) => {
-            this.handleStreamDispatcherEnd(dispatcherKey);
+
+        errorSubscription = errorSubject.subscribe((soundErr: StreamDispatcherError) => {
+            if (!finishSubscription.closed) {
+                finishSubscription.unsubscribe();
+            }
+            try {
+                dispatcher.end();
+            } catch (tryEndErr) {
+                this.logger.error('Error ending dispatcher on the sound being played erroring out. Sound dispatch error: ' 
+                                    + soundErr.error);
+            }
+
+            this.handleStreamDispatcherEnd(dispatcherKey, isStream, timer);
+            errorSubscription.unsubscribe();
         });
+
+        if (timeoutMs > 0) {
+            timer = setTimeout(() => {
+                let streamDispatcherError: StreamDispatcherError = new StreamDispatcherError();
+                streamDispatcherError.dispatcher = dispatcher;
+                streamDispatcherError.error = new Error('Timeout period of ' + timeoutMs + ' milliseconds reached in stream dispatcher.');
+
+                timer = null;
+
+                errorSubject.next(streamDispatcherError);
+            }, timeoutMs);
+        }
 
         dispatcher.on('debug', (msg: string) => {
             this.logger.debug('StreamDispatcher Debug for key ' + dispatcherKey + ': ' + msg);
@@ -226,12 +276,6 @@ export class VoiceChannelManager {
         });
 
         dispatcher.once('error', (soundDispatchErr: Error) => {
-            try {
-                dispatcher.end();
-            } catch (tryEndErr) {
-                this.logger.error('Error ending dispatcher on the sound being played erroring out. Sound dispatch error: ' 
-                                    + soundDispatchErr);
-            }
             let streamDispatcherError: StreamDispatcherError = new StreamDispatcherError();
             streamDispatcherError.dispatcher = dispatcher;
             streamDispatcherError.error = soundDispatchErr;
@@ -241,29 +285,34 @@ export class VoiceChannelManager {
 
     private setupBasicSubscribers(): void {
         this.onConnectionErrorSubject.subscribe((err: Error) => {
+            this.logger.error('Error on voice channel connection. Error: ' + err);
             this.leaveChannel().catch((leaveErr: Error) => {
                 this.logger.error('Error leaving channel after encountering an error in (setupBasicSubscribers). Error: ' + leaveErr);
             });
         });
     }
 
-    private handleStreamDispatcherEnd(key: string, isStream: boolean = false): void {
+    private handleStreamDispatcherEnd(key: string, isStream: boolean = false, timeoutTimer: NodeJS.Timer = null): void {
+        if (timeoutTimer !== undefined && timeoutTimer !== null) {
+            clearTimeout(timeoutTimer);
+        }
+
         let streamDispatcher: StreamDispatcher = this.streamDispatchers[key];
         if (streamDispatcher !== undefined && streamDispatcher !== null) {
             this.streamDispatchers[key] = undefined;
             delete this.streamDispatchers[key];
+        }
 
-            if (this.autoDisconnect) {
-                let dispatcherFiles: string[] = Object.keys(this.streamDispatchers);
-                if (dispatcherFiles.length === 0) {
-                    this.leaveChannel().catch((err: Error) => {
-                        if (isStream) {
-                            this.logger.error('Error leaving channel automatically when stream ' + key + ' finished playing. Error: ' + err);
-                        } else {
-                            this.logger.error('Error leaving channel automatically when file ' + key + ' finished playing. Error: ' + err);
-                        }
-                    });
-                }
+        if (this.autoDisconnect) {
+            let dispatcherFiles: string[] = Object.keys(this.streamDispatchers);
+            if (dispatcherFiles.length === 0) {
+                this.leaveChannel().catch((err: Error) => {
+                    if (isStream) {
+                        this.logger.error('Error leaving channel automatically when stream ' + key + ' finished playing. Error: ' + err);
+                    } else {
+                        this.logger.error('Error leaving channel automatically when file ' + key + ' finished playing. Error: ' + err);
+                    }
+                });
             }
         }
     }
