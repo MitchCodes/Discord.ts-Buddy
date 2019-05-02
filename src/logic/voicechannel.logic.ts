@@ -71,7 +71,7 @@ export class VoiceChannelManager {
         return new Promise<VoiceConnection | any>((resolve : (val: VoiceConnection) => void, reject : (val: any) => void) => {
             this.autoDisconnect = autoDisconnect;
             this.activeVoiceReceivers = [];
-            this.activeVoiceChannel.join().then((res: VoiceConnection) => {
+            voiceChannel.join().then((res: VoiceConnection) => {
                 this.activeVoiceChannel = voiceChannel;
                 this.activeVoiceConnection = res;
 
