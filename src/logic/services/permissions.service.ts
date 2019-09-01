@@ -106,9 +106,17 @@ export class CommandPermissionsService {
     }
 
     private userIsInRole(guildMember: GuildMember, roleIdentifier: string): boolean {
-        let helper: DiscordHelper = new DiscordHelper();
+        let identifierLowered: string = roleIdentifier.toLowerCase();
+        for (let role of guildMember.roles) {
+            if (role[1].name.toLowerCase() === identifierLowered) {
+                return true;
+            }
+            if (role[1].id === roleIdentifier) {
+                return true;
+            }
+        }
 
-        return helper.rolesCollectionHasRole(guildMember.guild.roles.array(), roleIdentifier);
+        return false;
     }
 
     private userIsCertainUser(guildMember: GuildMember, userIdentifier: string): boolean {
