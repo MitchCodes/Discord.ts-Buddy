@@ -76,17 +76,21 @@ export class VoiceChannelManager {
                 this.activeVoiceConnection = res;
 
                 this.activeVoiceConnection.on('error', (err: Error) => {
-                    this.logger.error('Error (error event) during voice connection: ' + err);
+                    this.logger.error('Error (error event) during voice connection: Error (' + err.name + '): ' + err.message + ', Stack: ' + err.stack);
                     this.onConnectionErrorSubject.next(err);
                 });
 
                 this.activeVoiceConnection.on('failed', (err: Error) => {
-                    this.logger.error('Error (failed event) during voice connection: ' + err);
+                    this.logger.error('Error (failed event) during voice connection: Error (' + err.name + '): ' + err.message + ', Stack: ' + err.stack);
                     this.onConnectionErrorSubject.next(err);
                 });
 
                 this.activeVoiceConnection.on('warn', (warning: string | Error) => {
-                    this.logger.warn('Warning from discord.js when in voice channel: ' + warning);
+                    if (warning instanceof Error) {
+                        this.logger.error('Warning with error from discord.js when in voice channel: Error (' + warning.name + '): ' + warning.message + ', Stack: ' + warning.stack);
+                    } else {
+                        this.logger.warn('Warning from discord.js when in voice channel: ' + warning);
+                    }
                 });
 
                 resolve(this.activeVoiceConnection);
@@ -276,6 +280,7 @@ export class VoiceChannelManager {
         });
 
         dispatcher.once('error', (soundDispatchErr: Error) => {
+            this.logger.error('Error in voice channel manager stream dispatch: Error (' + soundDispatchErr.name + '): ' + soundDispatchErr.message + ', Stack: ' + soundDispatchErr.stack);
             let streamDispatcherError: StreamDispatcherError = new StreamDispatcherError();
             streamDispatcherError.dispatcher = dispatcher;
             streamDispatcherError.error = soundDispatchErr;
@@ -285,7 +290,7 @@ export class VoiceChannelManager {
 
     private setupBasicSubscribers(): void {
         this.onConnectionErrorSubject.subscribe((err: Error) => {
-            this.logger.error('Error on voice channel connection. Error: ' + err);
+            this.logger.error('Error on voice channel connection. Error (' + err.name + '): ' + err.message + ', Stack: ' + err.stack);
             this.leaveChannel().catch((leaveErr: Error) => {
                 this.logger.error('Error leaving channel after encountering an error in (setupBasicSubscribers). Error: ' + leaveErr);
             });
@@ -308,9 +313,9 @@ export class VoiceChannelManager {
             if (dispatcherFiles.length === 0) {
                 this.leaveChannel().catch((err: Error) => {
                     if (isStream) {
-                        this.logger.error('Error leaving channel automatically when stream ' + key + ' finished playing. Error: ' + err);
+                        this.logger.error('Error leaving channel automatically when stream ' + key + ' finished playing. Error (' + err.name + '): ' + err.message + ', Stack: ' + err.stack);
                     } else {
-                        this.logger.error('Error leaving channel automatically when file ' + key + ' finished playing. Error: ' + err);
+                        this.logger.error('Error leaving channel automatically when file ' + key + ' finished playing. Error (' + err.name + '): ' + err.message + ', Stack: ' + err.stack);
                     }
                 });
             }
