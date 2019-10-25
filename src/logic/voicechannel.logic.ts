@@ -71,7 +71,7 @@ export class VoiceChannelManager {
         return new Promise<VoiceConnection | any>((resolve : (val: VoiceConnection) => void, reject : (val: any) => void) => {
             this.autoDisconnect = autoDisconnect;
             this.activeVoiceReceivers = [];
-            this.activeVoiceChannel.join().then((res: VoiceConnection) => {
+            voiceChannel.join().then((res: VoiceConnection) => {
                 this.activeVoiceChannel = voiceChannel;
                 this.activeVoiceConnection = res;
 
@@ -208,6 +208,7 @@ export class VoiceChannelManager {
         }
 
         if (this.activeVoiceConnection === undefined || this.activeVoiceConnection === null) {
+            this.resetActiveVoiceSettings();
             return Promise.reject(new Error('This manager does not have an active voice connection'));
         }
 
@@ -216,6 +217,7 @@ export class VoiceChannelManager {
 
             let leaveTimer: NodeJS.Timer = setTimeout(() => {
                 reject(new Error('The bot has failed to disconnect within ' + this.leaveChannelFailTimerMs + ' milliseconds.'));
+                this.resetActiveVoiceSettings();
                 leaveTimer = null;
             }, 15000);
 
@@ -294,6 +296,7 @@ export class VoiceChannelManager {
             this.leaveChannel().catch((leaveErr: Error) => {
                 this.logger.error('Error leaving channel after encountering an error in (setupBasicSubscribers). Error: ' + leaveErr);
             });
+            
         });
     }
 

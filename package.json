@@ -1,6 +1,6 @@
 {
   "name": "discord.ts-buddy",
-  "version": "1.0.15",
+  "version": "1.0.18",
   "description": "TypeScript helper classes for use with Discord.js bots.",
   "engineStrict": true,
   "main": "./build/src/main.js",
