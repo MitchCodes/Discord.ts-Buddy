@@ -70,7 +70,7 @@ export class DiscordHelper {
     }
 
     public msgIsInTextChannel(msg: Message): boolean {
-        if (msg.channel instanceof TextChannel) {
+        if (msg.channel.type === "text") {
             return true;
         }
 
@@ -79,7 +79,7 @@ export class DiscordHelper {
 
     public msgIsInTextChannelById(msg: Message, identifier: string): boolean {
         let identifierLowered: string = identifier.toLowerCase();
-        if (msg.channel instanceof TextChannel) {
+        if (msg.channel.type === "text") {
             let textChannel: TextChannel = <TextChannel>msg.channel;
             if (textChannel.name.toLowerCase() === identifierLowered) {
                 return true;
