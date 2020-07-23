@@ -44,4 +44,8 @@ export class TestCommand implements ICommand, ICommandFactory, ICommandPermissio
             resolve(result);
         });
     }
+
+    public setupPermissions(bot: IDiscordBot, msg: Message) {
+
+    }
 }

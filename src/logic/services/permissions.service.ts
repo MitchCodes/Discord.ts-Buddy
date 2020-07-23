@@ -107,7 +107,7 @@ export class CommandPermissionsService {
 
     private userIsInRole(guildMember: GuildMember, roleIdentifier: string): boolean {
         let identifierLowered: string = roleIdentifier.toLowerCase();
-        for (let role of guildMember.roles) {
+        for (let role of guildMember.roles.cache) {
             if (role[1].name.toLowerCase() === identifierLowered) {
                 return true;
             }

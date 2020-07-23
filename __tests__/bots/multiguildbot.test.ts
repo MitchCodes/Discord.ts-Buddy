@@ -49,32 +49,44 @@ describe('multi-guild-bot tests', () => {
             mainBotClient = new MultiGuildBot('Main Bot', mainBotToken, logger, nconf);
             secondBotClient = new MultiGuildBot('Second Bot', secondBotToken, logger, nconf);
 
+            logger.info('Main Token: ' + mainBotToken);
+
             return mainBotClient.startBot().then(() => {
-                for (let guild of mainBotClient.guilds) {
-                    if (guild.id === guildTestOnId) {
-                        mainBotTestGuild = guild;
-                        break;
-                    }
-                }
-
-                return secondBotClient.startBot();
+                return new Promise((resolve) => {
+                    mainBotClient.onBotReady.subscribe(() => {
+                        for (let guild of mainBotClient.guilds) {
+                            if (guild.id === guildTestOnId) {
+                                mainBotTestGuild = guild;
+                                break;
+                            }
+                        } 
+    
+                        secondBotClient.startBot().then(() => {
+                            resolve();
+                        });
+                    });
+                });                
             }).then(() => {
-                for (let guild of secondBotClient.guilds) {
-                    if (guild.id === guildTestOnId) {
-                        secondBotTestGuild = guild;
-                        break;
-                    }
-                }
-
-                if (mainBotTestGuild !== null && mainBotTestGuild !== undefined) {
-                    for (let channel of mainBotTestGuild.channels) {
-                        if (channel[1].name === voiceChannelName && channel[1].type === 'voice') {
-                            mainBotVoiceChannel = <VoiceChannel>channel[1];
+                return new Promise((resolve) => {
+                    secondBotClient.onBotReady.subscribe(() => {
+                        for (let guild of secondBotClient.guilds) {
+                            if (guild.id === guildTestOnId) {
+                                secondBotTestGuild = guild;
+                                break;
+                            }
                         }
-                    }
-                }
+        
+                        if (mainBotTestGuild !== null && mainBotTestGuild !== undefined) {
+                            for (let channel of mainBotTestGuild.channels.cache) {
+                                if (channel[1].name === voiceChannelName && channel[1].type === 'voice') {
+                                    mainBotVoiceChannel = <VoiceChannel>channel[1];
+                                }
+                            }
+                        }
 
-                return Promise.resolve();
+                        resolve();
+                    });
+                });
             });
         } else {
             return Promise.resolve();

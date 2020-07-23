@@ -3,7 +3,7 @@ import { GuildMember, Guild, Role, Message, TextChannel } from 'discord.js';
 export class DiscordHelper {
     public getMemberByNickUsernameOrId(guild: Guild, identifier: string): GuildMember {
         let resultingMember: GuildMember = null;
-        let guildMemberArray: GuildMember[] = guild.members.array();
+        let guildMemberArray: GuildMember[] = guild.members.cache.array();
         let nameLowered = identifier.toLowerCase();
         for (let currentGuildMember of guildMemberArray) {
             let currentGuildMemberUsername = currentGuildMember.user.username;

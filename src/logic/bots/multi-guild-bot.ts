@@ -73,15 +73,10 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
 
     public stopBot(): Promise<string> {
         return new Promise<string>((resolve : (val: string) => void, reject : (val: string) => void) => {
-            this.botClient.destroy().then(() => {
-                this.botInfo('Stopped.');
-                this.onBotLoggedOut.next(true);
-                resolve('stopped');
-            }).catch((stopErr: string) => {
-                this.botError('Error trying to stop the bot: ' + stopErr);
-                this.onBotLoggedOut.next(true);
-                reject(stopErr);
-            });
+            this.botClient.destroy();
+            this.botInfo('Stopped.');
+            this.onBotLoggedOut.next(true);
+            resolve('stopped');
         });
     }
 
@@ -231,7 +226,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
     }
 
     private updateGuildsConnectedTo(): void {
-        this.guilds = this.botClient.guilds.array();
+        this.guilds = this.botClient.guilds.cache.array();
     }
 
     private setupBotEvents(): void {

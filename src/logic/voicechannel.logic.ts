@@ -128,7 +128,7 @@ export class VoiceChannelManager {
             playSoundResult.onSoundErrorSubject = new Rx.Subject<StreamDispatcherError>();
             let dispatchKey: string = this.uuidv4();
 
-            let createdDispatcher: StreamDispatcher = this.activeVoiceConnection.playStream(stream);
+            let createdDispatcher: StreamDispatcher = this.activeVoiceConnection.play(stream);
             this.streamDispatchers[dispatchKey] = createdDispatcher;
             playSoundResult.streamDispatcher = createdDispatcher;
             
@@ -161,7 +161,7 @@ export class VoiceChannelManager {
             playSoundResult.onSoundErrorSubject = new Rx.Subject<StreamDispatcherError>();
             let dispatchKey: string = file;
             
-            let createdDispatcher: StreamDispatcher = this.activeVoiceConnection.playFile(file);
+            let createdDispatcher: StreamDispatcher = this.activeVoiceConnection.play(file);
             this.streamDispatchers[dispatchKey] = createdDispatcher;
             playSoundResult.streamDispatcher = createdDispatcher;
 
@@ -190,7 +190,7 @@ export class VoiceChannelManager {
         }
 
         return new Promise<VoiceReceiver | Error>((resolve : (val: VoiceReceiver) => void, reject : (val: Error) => void) => {
-            let newVoiceReceiver: VoiceReceiver = this.activeVoiceConnection.createReceiver();
+            let newVoiceReceiver: VoiceReceiver = this.activeVoiceConnection.receiver;
             this.activeVoiceReceivers.push(newVoiceReceiver);
             if (this.activeVoiceReceivers.length > 1) {
                 this.logger.warn('Discord.js only recommends creating one voice receiver per voice connection.');
