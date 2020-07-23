@@ -3,6 +3,8 @@ import { Message, TextChannel } from 'discord.js';
 import { ICommandPermissions, CommandPermissionRequirementSettings, CommandPermissionFeedbackType, 
     CommandPermissionType, CommandPermissionRequirement } from '../../src/models/CommandPermission';
 import { IDiscordBot } from '../../src/models/DiscordBot';
+import { DH_NOT_SUITABLE_GENERATOR } from 'constants';
+import { TestBot } from '../bots/testbot';
 
 export class TestCommand implements ICommand, ICommandFactory, ICommandPermissions {
     public commandName: string = 'Ping Pong';
@@ -11,10 +13,8 @@ export class TestCommand implements ICommand, ICommandFactory, ICommandPermissio
     public permissionRequirements: CommandPermissionRequirementSettings;
     public permissionFailReplyType: CommandPermissionFeedbackType;
     public testIsSet: boolean = false;
-    private args: string[] = null;
 
-    public constructor(args: string[] = []) {
-        this.args = args;
+    public constructor() {
         let anyTextChannelReq: CommandPermissionRequirement = new CommandPermissionRequirement();
         anyTextChannelReq.permissionType = CommandPermissionType.anytextchannel;
 
@@ -28,17 +28,21 @@ export class TestCommand implements ICommand, ICommandFactory, ICommandPermissio
         return 'You do not have permission to ping pong.';
     }
 
-    public makeCommand(args: string[]): ICommand {
-        return new TestCommand(args);
+    public makeCommand(): ICommand {
+        return new TestCommand();
     }
     
     public execute(bot: IDiscordBot, msg: Message): Promise<ICommandResult> {
         return new Promise<ICommandResult>((resolve : (val: ICommandResult) => void) => {
             let result: CommandResult = new CommandResult();
 
-            if (this.args.length > 1 && this.args[1] === 'pong') {
+            if (msg.content === '!ping') {
                 this.testIsSet = true;
+                msg.channel.send('pong');
             }
+
+            let botCasted: TestBot = <TestBot>bot;
+            botCasted.pingPongTimesCalled += 1;
 
             result.status = CommandResultStatus.success;
             resolve(result);

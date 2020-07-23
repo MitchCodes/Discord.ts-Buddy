@@ -1,13 +1,14 @@
 import { Logger, createLogger, transports } from 'winston';
 import * as nconf from 'nconf';
-import { Client, Guild, VoiceChannel, VoiceConnection } from 'discord.js';
+import { Client, Guild, VoiceChannel, VoiceConnection, TextChannel } from 'discord.js';
 import { MultiGuildBot } from '../../src/logic/bots/multi-guild-bot';
 import { doesNotThrow } from 'assert';
+import { TestBot } from './testbot';
 
 describe('multi-guild-bot tests', () => {
     let logger: Logger;
     let mainBotToken: string = '';
-    let mainBotClient: MultiGuildBot = null;
+    let mainBotClient: TestBot = null;
     let mainBotTestGuild: Guild = null;
     let mainBotVoiceChannel: VoiceChannel = null;
 
@@ -19,7 +20,7 @@ describe('multi-guild-bot tests', () => {
 
     let voiceChannelName: string = '';
 
-    beforeAll(() => {
+    beforeAll((finishBeforeAll) => {
         // Even though this file is in two directories deep, the context of running the tests is in the root folder.
         nconf.file({ file: './config.common.json' });
         nconf.defaults({
@@ -46,7 +47,7 @@ describe('multi-guild-bot tests', () => {
           });
         
         if (mainBotToken !== '' && secondBotToken !== '') {
-            mainBotClient = new MultiGuildBot('Main Bot', mainBotToken, logger, nconf);
+            mainBotClient = new TestBot('Main Bot', mainBotToken, logger, nconf);
             secondBotClient = new MultiGuildBot('Second Bot', secondBotToken, logger, nconf);
 
             logger.info('Main Token: ' + mainBotToken);
@@ -87,6 +88,8 @@ describe('multi-guild-bot tests', () => {
                         resolve();
                     });
                 });
+            }).then(() => {
+                finishBeforeAll();
             });
         } else {
             return Promise.resolve();
@@ -126,6 +129,24 @@ describe('multi-guild-bot tests', () => {
     test('voice channel is not null', () => {
         expect(mainBotVoiceChannel).not.toBeNull();
         expect(mainBotVoiceChannel.joinable).toBeTruthy();
+    });
+
+    test('can send message', (finish) => {
+        for (let channel of secondBotTestGuild.channels.cache.array()) {
+            if (channel.type === 'text' && channel.name === 'botcommands') {
+                (<TextChannel>channel).send('!ping');
+                finish();
+                break;
+            }
+        }
+    });
+
+    test('command was processed', (finish) => {
+        setTimeout(() => {
+            //expect(mainBotClient.pingPongTimesCalled).toBe(1);
+
+            finish();
+        }, 1000);
     });
 
     // test('can join voice channel', (done: any) => {
