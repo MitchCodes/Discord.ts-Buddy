@@ -57,6 +57,7 @@ export interface ICommandFactory {
 export enum CommandMatchingType {
     prefixedOneWord = 0,
     exactMatch = 1,
+    startsWith = 2,
 }
 
 export class CommandMatchingSettings {

@@ -24,6 +24,7 @@ export class CommandPermissionRequirement {
 export class CommandPermissionRequirementSettings {
     public allRequirements: CommandPermissionRequirement[] = [];
     public anyRequirements: CommandPermissionRequirement[] = [];
+    public anyRequirementsByType: CommandPermissionRequirement[] = [];
 }
 
 export interface ICommandPermissions {

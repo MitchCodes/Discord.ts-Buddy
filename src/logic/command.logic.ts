@@ -44,6 +44,13 @@ export class CommandParser {
                     }
                 }
                 break;
+            case CommandMatchingType.startsWith:
+                for (let comm of this.availableCommands) {
+                    if (rawInputCommand.startsWith(matchingSettings.prefix + comm.commandMatchText)) {
+                        return comm;
+                    }
+                }
+                break;
             default:
                 return null;
         }        
