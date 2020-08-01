@@ -32,4 +32,4 @@ export { CommandPermissionsService } from './logic/services/permissions.service'
 
 // Commands
 export { CommandParser } from './logic/command.logic';
-export { ICommandParserFactory, PrefixedCommandParserFactory, ExactCommandParserFactory } from './logic/factories/commandparser.factory';
+export { ICommandParserFactory, PrefixedCommandParserFactory, ExactCommandParserFactory, StartsWithCommandParserFactory } from './logic/factories/commandparser.factory';
