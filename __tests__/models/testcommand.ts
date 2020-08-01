@@ -34,6 +34,10 @@ export class TestCommand implements ICommand, ICommandFactory, ICommandPermissio
             return Promise.resolve<boolean>(false);
         });
 
+        let permissionReq: CommandPermissionRequirement = new CommandPermissionRequirement();
+        permissionReq.permissionType = CommandPermissionType.permission;
+        permissionReq.identifier = 'ADMINISTRATOR';
+
 
         let anyBizarreReq: CommandPermissionRequirement = new CommandPermissionRequirement();
         anyBizarreReq.permissionType = CommandPermissionType.textchannel;
@@ -59,6 +63,7 @@ export class TestCommand implements ICommand, ICommandFactory, ICommandPermissio
         this.permissionRequirements.allRequirements.push(anyTextChannelReq);
         this.permissionRequirements.allRequirements.push(textChannelReq);
         this.permissionRequirements.allRequirements.push(customReq);
+        this.permissionRequirements.allRequirements.push(permissionReq);
 
         this.permissionRequirements.anyRequirements.push(anyBizarreReq);
         this.permissionRequirements.anyRequirements.push(anyTextForAnyReq);

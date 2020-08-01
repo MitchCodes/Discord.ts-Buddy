@@ -8,6 +8,7 @@ export enum CommandPermissionType {
     textchannel,
     anytextchannel,
     custom,
+    permission,
 }
 
 export enum CommandPermissionFeedbackType {

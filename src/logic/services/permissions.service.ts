@@ -1,8 +1,9 @@
-import { GuildMember, Message } from 'discord.js';
+import { GuildMember, Message, Permissions, BitFieldResolvable, PermissionString } from 'discord.js';
 import { ICommandPermissions, CommandPermissionType, CommandPermissionResult, 
         CommandPermissionResultStatus, 
         CommandPermissionRequirement} from '../../models/CommandPermission';
 import { DiscordHelper } from '../helpers/discord.helper';
+import { isNumber } from 'util';
 
 export class CommandPermissionsService {
     public hasPermissions(command: ICommandPermissions, msg: Message): Promise<CommandPermissionResult> {
@@ -194,6 +195,12 @@ export class CommandPermissionsService {
                         return;
                     }
                     break;
+                case CommandPermissionType.permission:
+                    if (this.userHasPermissions(guildMember, requirement.identifier)) {
+                        resolve(true);
+                        return;
+                    }
+                    break;
                 case CommandPermissionType.custom:
                     if (requirement.customCallback !== undefined && requirement.customCallback !== null) {
                         requirement.customCallback(msg, guildMember, requirement).then((hasPermission: boolean) => {
@@ -262,4 +269,26 @@ export class CommandPermissionsService {
 
         return helper.msgIsInTextChannel(msg);
     }
+
+    private userHasPermissions(guildMember: GuildMember, permissionIdentifier: string): boolean {
+        let permissionInput: string | number | Array<string> = permissionIdentifier;
+        let permissionSplit: string[] = permissionIdentifier.split(',');
+        if (permissionSplit.length > 1) {
+            let permissionsArray: Array<string> = [];
+            for (let permission of permissionSplit) {
+                permissionsArray.push(permission);
+            }
+            permissionInput = permissionsArray;
+        } else if (this.isNumeric(permissionIdentifier)) {
+            permissionInput = Number(permissionIdentifier);
+        }
+
+        let permissions: Permissions = new Permissions((<BitFieldResolvable<PermissionString>>permissionInput));
+        
+        return guildMember.hasPermission(permissions);
+    }
+
+    private isNumeric(num){
+        return !isNaN(num)
+      }
 }
