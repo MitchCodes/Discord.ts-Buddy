@@ -1,4 +1,4 @@
-import { Message } from 'discord.js';
+import { Message, GuildMember } from 'discord.js';
 import { IDiscordBot } from '../main';
 
 export enum CommandPermissionType {
@@ -7,6 +7,7 @@ export enum CommandPermissionType {
     guild,
     textchannel,
     anytextchannel,
+    custom,
 }
 
 export enum CommandPermissionFeedbackType {
@@ -19,6 +20,7 @@ export class CommandPermissionRequirement {
     public permissionType: CommandPermissionType;
     public identifier: string;
     public deleteMessageIfFail: boolean;
+    public customCallback: (msg: Message, guildMember: GuildMember, requirement: CommandPermissionRequirement) => Promise<boolean>;
 }
 
 export class CommandPermissionRequirementSettings {

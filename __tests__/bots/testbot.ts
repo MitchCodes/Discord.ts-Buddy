@@ -1,5 +1,6 @@
 import { MultiGuildBot, CommandParser, ICommandFactory, CommandMatchingSettings, CommandMatchingType } from '../../src/main';
 import { TestCommand } from '../models/testcommand';
+import { TestCommandTwo } from '../models/testcommandtwo';
 
 export class TestBot extends MultiGuildBot {
     public pingPongTimesCalled: number = 0;
@@ -25,8 +26,10 @@ export class TestBot extends MultiGuildBot {
 
         // set up commands
         let pingPongCommand: ICommandFactory = new TestCommand();
+        let pingPongCommandTwo: ICommandFactory = new TestCommandTwo();
 
         availableCommands.push(pingPongCommand);
+        //availableCommands.push(pingPongCommandTwo);
         
         // set up parser(s)
         returnParsers.push(new CommandParser(commandParserSettings, availableCommands));

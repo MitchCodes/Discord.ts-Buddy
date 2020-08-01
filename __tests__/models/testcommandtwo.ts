@@ -6,7 +6,7 @@ import { IDiscordBot } from '../../src/models/DiscordBot';
 import { DH_NOT_SUITABLE_GENERATOR } from 'constants';
 import { TestBot } from '../bots/testbot';
 
-export class TestCommand implements ICommand, ICommandFactory, ICommandPermissions {
+export class TestCommandTwo implements ICommand, ICommandFactory, ICommandPermissions {
     public commandName: string = 'Ping Pong';
     public commandDescription: string = 'Simple ping pong test';
     public commandMatchText: string = 'ping';
@@ -25,12 +25,6 @@ export class TestCommand implements ICommand, ICommandFactory, ICommandPermissio
         let customReq: CommandPermissionRequirement = new CommandPermissionRequirement();
         customReq.permissionType = CommandPermissionType.custom;
         customReq.customCallback = ((msg: Message, guildMember: GuildMember, requirement: CommandPermissionRequirement): Promise<boolean> => {
-            return Promise.resolve<boolean>(true);
-        });
-
-        let customFailReq: CommandPermissionRequirement = new CommandPermissionRequirement();
-        customFailReq.permissionType = CommandPermissionType.custom;
-        customFailReq.customCallback = ((msg: Message, guildMember: GuildMember, requirement: CommandPermissionRequirement): Promise<boolean> => {
             return Promise.resolve<boolean>(false);
         });
 
@@ -55,6 +49,8 @@ export class TestCommand implements ICommand, ICommandFactory, ICommandPermissio
         anyByTypeBizarreReq.identifier = 'asdsdsd';
 
 
+
+
         this.permissionRequirements = new CommandPermissionRequirementSettings();
         this.permissionRequirements.allRequirements.push(anyTextChannelReq);
         this.permissionRequirements.allRequirements.push(textChannelReq);
@@ -65,11 +61,9 @@ export class TestCommand implements ICommand, ICommandFactory, ICommandPermissio
 
         this.permissionRequirements.anyRequirementsByType.push(anyByTypeAnyTextChannelReq);
         this.permissionRequirements.anyRequirementsByType.push(anyByTypeTextChannelReq);
-        this.permissionRequirements.anyRequirementsByType.push(customReq);
-        this.permissionRequirements.anyRequirementsByType.push(customFailReq);
+        this.permissionRequirements.anyRequirementsByType.push(anyByTypeBizarreReq);
 
         this.permissionFailReplyType = CommandPermissionFeedbackType.direct;
-
     }
 
     public getPermissionFailReplyText(msg: Message): string {
@@ -77,7 +71,7 @@ export class TestCommand implements ICommand, ICommandFactory, ICommandPermissio
     }
 
     public makeCommand(): ICommand {
-        return new TestCommand();
+        return new TestCommandTwo();
     }
     
     public execute(bot: IDiscordBot, msg: Message): Promise<ICommandResult> {
@@ -86,7 +80,7 @@ export class TestCommand implements ICommand, ICommandFactory, ICommandPermissio
 
             if (msg.content === '!ping') {
                 this.testIsSet = true;
-                msg.channel.send('pong');
+                msg.channel.send('pong2');
             }
 
             let botCasted: TestBot = <TestBot>bot;

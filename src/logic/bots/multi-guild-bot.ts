@@ -143,43 +143,55 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         return new Promise<ICommandResult>((resolve : (val: ICommandResult) => void, reject : (val: ICommandResult) => void) => {
             // handle permissions
             let commandAny: any = <any>command;
-            if (commandAny.permissionRequirements !== undefined) {
-                let commandPermissions = <ICommandPermissions>commandAny;
-                commandPermissions.setupPermissions(this, msg);
-                let permissionService: CommandPermissionsService = new CommandPermissionsService();
-                
-                let permissionResult: CommandPermissionResult = permissionService.hasPermissions(commandPermissions, msg);
 
-                if (permissionResult.permissionStatus === CommandPermissionResultStatus.noPermission) {
-                    let result: CommandResult = new CommandResult();
-                    result.replyHandled = true;
-                    result.error = new Error('Lack of permissions');
-                    result.message = 'Lack permission to run this';
-                    result.status = CommandResultStatus.error;
-                    this.botInfo('User ' + msg.member.user.username + ' tried to run command ' + command.commandName 
-                                + '(' + msg.content + ') and lacked permission.');
-                    this.handleLackPermissionReply(commandPermissions, msg);
-                    this.handleLackPermissionDeleteMessage(permissionResult, msg);
-                    reject(result);
+            let permissionPromise: Promise<boolean> = new Promise<boolean>((resolve : (val: boolean) => void, reject : (val: any) => void) => {
+                if (commandAny.permissionRequirements !== undefined && commandAny.permissionRequirements !== null) {
+                    let commandPermissions = <ICommandPermissions>commandAny;
+                    commandPermissions.setupPermissions(this, msg);
+                    let permissionService: CommandPermissionsService = new CommandPermissionsService();
+                    
+                    permissionService.hasPermissions(commandPermissions, msg).then((permissionResult: CommandPermissionResult) => {
+                        if (permissionResult.permissionStatus === CommandPermissionResultStatus.noPermission) {
+                            let result: CommandResult = new CommandResult();
+                            result.replyHandled = true;
+                            result.error = new Error('Lack of permissions');
+                            result.message = 'Lack permission to run this';
+                            result.status = CommandResultStatus.error;
+                            this.botInfo('User ' + msg.member.user.username + ' tried to run command ' + command.commandName 
+                                        + '(' + msg.content + ') and lacked permission.');
+                            this.handleLackPermissionReply(commandPermissions, msg);
+                            this.handleLackPermissionDeleteMessage(permissionResult, msg);
+                            reject(result);
 
-                    return;
-                }
-            }
-
-            // they have permission, run the command
-            this.setupCommandPreExecute(command);
-            command.execute(this, msg).then((executeResult: ICommandResult) => {
-                if (executeResult.status === CommandResultStatus.error) {
-                    reject(executeResult);
+                            return;
+                        }
     
-                    return;
+                        resolve(true);
+                    });
+                } else {
+                    resolve(true);
                 }
+            });
 
-                resolve(executeResult);
-            }).catch((executeResult: ICommandResult) => {
-                reject(executeResult);
+            permissionPromise.then(() => {
+                // they have permission, run the command
+                this.setupCommandPreExecute(command);
+                command.execute(this, msg).then((executeResult: ICommandResult) => {
+                    if (executeResult.status === CommandResultStatus.error) {
+                        reject(executeResult);
+        
+                        return;
+                    }
 
-                return;
+                    resolve(executeResult);
+                }).catch((executeResult: ICommandResult) => {
+                    reject(executeResult);
+
+                    return;
+                });
+            }).catch((err: any) => {
+                // no permission result or error
+                reject(err);
             });
         });
     }

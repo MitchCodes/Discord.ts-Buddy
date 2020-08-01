@@ -5,104 +5,212 @@ import { ICommandPermissions, CommandPermissionType, CommandPermissionResult,
 import { DiscordHelper } from '../helpers/discord.helper';
 
 export class CommandPermissionsService {
-    // tslint:disable-next-line:cyclomatic-complexity
-    public hasPermissions(command: ICommandPermissions, msg: Message): CommandPermissionResult {
-        let returnResult: CommandPermissionResult = new CommandPermissionResult();
-        returnResult.permissionStatus = CommandPermissionResultStatus.hasPermission;
+    public hasPermissions(command: ICommandPermissions, msg: Message): Promise<CommandPermissionResult> {
+        return new Promise<CommandPermissionResult>((resolve : (val: CommandPermissionResult) => void) => {
+            let returnResult: CommandPermissionResult = new CommandPermissionResult();
+            returnResult.permissionStatus = CommandPermissionResultStatus.hasPermission;
 
-        let guildMember: GuildMember = msg.member;
-        for (let requirement of command.permissionRequirements.allRequirements) {
-            if (!this.testPermission(msg, guildMember, requirement)) {
-                returnResult.permissionStatus = CommandPermissionResultStatus.noPermission;
-            }
+            let guildMember: GuildMember = msg.member;
+            let overallPermissionsPromise: Promise<CommandPermissionResultStatus> = Promise.resolve<CommandPermissionResultStatus>(CommandPermissionResultStatus.hasPermission);
 
-            if (returnResult.permissionStatus === CommandPermissionResultStatus.noPermission) {
-                returnResult.failedCommandRequirements.push(requirement);
-                
-                return returnResult;
-            }
-        }
-
-        if (command.permissionRequirements.anyRequirements.length > 0) {
-            returnResult.permissionStatus = CommandPermissionResultStatus.noPermission;
-            let anyRequirementMet: boolean = false;
-            for (let requirement of command.permissionRequirements.anyRequirements) {
-                if (this.testPermission(msg, guildMember, requirement)) {
-                    anyRequirementMet = true;
-                } else {
-                    returnResult.failedCommandRequirements.push(requirement);
-                }
-
-                if (anyRequirementMet) {
-                    returnResult.permissionStatus = CommandPermissionResultStatus.hasPermission;
-                }
-            }
-        }
-
-        if (command.permissionRequirements.anyRequirementsByType.length > 0) {
-            let anyRequirementTypes: CommandPermissionType[] = this.getPermissionTypes(command.permissionRequirements.anyRequirementsByType);
-            returnResult.permissionStatus = CommandPermissionResultStatus.noPermission;
-            let allAnyRequirementMet: boolean = true;
-
-            for (let requirementType of anyRequirementTypes) {
-                let anyRequirementMet: boolean = false;
-                for (let requirement of command.permissionRequirements.anyRequirementsByType) {
-                    if (requirement.permissionType === requirementType) {
-                        if (this.testPermission(msg, guildMember, requirement)) {
-                            anyRequirementMet = true;
-                        } else {
-                            returnResult.failedCommandRequirements.push(requirement);
-                        }
+            if (command.permissionRequirements.allRequirements.length > 0) {
+                overallPermissionsPromise = overallPermissionsPromise.then((currentStatus: CommandPermissionResultStatus) => {
+                    if (currentStatus === CommandPermissionResultStatus.noPermission) {
+                        return Promise.resolve<CommandPermissionResultStatus>(currentStatus);
+                    } else {
+                        return this.testAllPermissions(msg, guildMember, command, returnResult.failedCommandRequirements);
                     }
-                }
-
-                if (!anyRequirementMet) {
-                    allAnyRequirementMet = false;
-                }
+                });
             }
 
-            if (allAnyRequirementMet) {
-                returnResult.permissionStatus = CommandPermissionResultStatus.hasPermission;
+            if (command.permissionRequirements.anyRequirements.length > 0) {
+                overallPermissionsPromise = overallPermissionsPromise.then((currentStatus: CommandPermissionResultStatus) => {
+                    if (currentStatus === CommandPermissionResultStatus.noPermission) {
+                        return Promise.resolve<CommandPermissionResultStatus>(currentStatus);
+                    } else {
+                        return this.testAnyPermissions(msg, guildMember, command, returnResult.failedCommandRequirements);
+                    }
+                });
             }
 
-            
-        }
-        
-        return returnResult;
+            if (command.permissionRequirements.anyRequirementsByType.length > 0) {
+                overallPermissionsPromise = overallPermissionsPromise.then((currentStatus: CommandPermissionResultStatus) => {
+                    if (currentStatus === CommandPermissionResultStatus.noPermission) {
+                        return Promise.resolve<CommandPermissionResultStatus>(currentStatus);
+                    } else {
+                        return this.testAnyByTypePermissions(msg, guildMember, command, returnResult.failedCommandRequirements);
+                    }
+                });
+            }
+
+            overallPermissionsPromise.then((finalStatus: CommandPermissionResultStatus) => {
+                returnResult.permissionStatus = finalStatus;
+                resolve(returnResult);
+            });
+        });
     }
 
-    private testPermission(msg: Message, guildMember: GuildMember, requirement: CommandPermissionRequirement): boolean {
-        switch (requirement.permissionType) {
-            case CommandPermissionType.guild:
-                if (this.isGuild(guildMember, requirement.identifier)) {
-                    return true;
-                }
-                break;
-            case CommandPermissionType.role:
-                if (this.userIsInRole(guildMember, requirement.identifier)) {
-                    return true;
-                }
-                break;
-            case CommandPermissionType.user:
-                if (this.userIsCertainUser(guildMember, requirement.identifier)) {
-                    return true;
-                }
-                break;
-            case CommandPermissionType.textchannel:
-                if (this.msgIsInTextChannelById(msg, requirement.identifier)) {
-                    return true;
-                }
-                break;
-            case CommandPermissionType.anytextchannel:
-                if (this.msgIsInTextChannel(msg)) {
-                    return true;
-                }
-                break;
-            default:
-                return true;
-        }
+    private testAllPermissions(msg: Message, guildMember: GuildMember, command: ICommandPermissions, failedRequirementsArr: CommandPermissionRequirement[]): Promise<CommandPermissionResultStatus> {
+        return new Promise<CommandPermissionResultStatus>((resolve : (val: CommandPermissionResultStatus) => void) => {
+            let p : Promise<CommandPermissionResultStatus> = Promise.resolve<CommandPermissionResultStatus>(CommandPermissionResultStatus.hasPermission);
+            for (let i = 0; i < command.permissionRequirements.allRequirements.length; i++) {
+                let requirement = command.permissionRequirements.allRequirements[i];
+                p = p.then((returnStatus: CommandPermissionResultStatus) => new Promise<CommandPermissionResultStatus>((resolve : (val: CommandPermissionResultStatus) => void) => {
+                    if (returnStatus === CommandPermissionResultStatus.noPermission) {
+                        resolve(returnStatus);
+                        return;
+                    }
 
-        return false;
+                    this.testPermission(msg, guildMember, requirement).then((hasPermission: boolean) => {
+                        if (!hasPermission) {
+                            returnStatus = CommandPermissionResultStatus.noPermission;
+                        }
+
+                        if (returnStatus === CommandPermissionResultStatus.noPermission) {
+                            failedRequirementsArr.push(requirement);
+                        }
+
+                        resolve(returnStatus);
+                    });
+                }));
+            }
+
+            p.then((status: CommandPermissionResultStatus) => {
+                resolve(status);
+            });
+        });
+    }
+
+    private testAnyPermissions(msg: Message, guildMember: GuildMember, command: ICommandPermissions, failedRequirementsArr: CommandPermissionRequirement[]): Promise<CommandPermissionResultStatus> {
+        return new Promise<CommandPermissionResultStatus>((resolve : (val: CommandPermissionResultStatus) => void) => {
+            let p : Promise<CommandPermissionResultStatus> = Promise.resolve<CommandPermissionResultStatus>(CommandPermissionResultStatus.noPermission);
+            for (let i = 0; i < command.permissionRequirements.anyRequirements.length; i++) {
+                let requirement = command.permissionRequirements.anyRequirements[i];
+                p = p.then((returnStatus: CommandPermissionResultStatus) => new Promise<CommandPermissionResultStatus>((resolve : (val: CommandPermissionResultStatus) => void) => {
+                    if (returnStatus === CommandPermissionResultStatus.hasPermission) {
+                        resolve(returnStatus);
+                        return;
+                    }
+
+                    this.testPermission(msg, guildMember, requirement).then((hasPermission: boolean) => {
+                        if (hasPermission) {
+                            returnStatus = CommandPermissionResultStatus.hasPermission;
+                        }
+
+                        if (returnStatus === CommandPermissionResultStatus.noPermission) {
+                            failedRequirementsArr.push(requirement);
+                        }
+
+                        resolve(returnStatus);
+                    });
+                }));
+            }
+
+            p.then((status: CommandPermissionResultStatus) => {
+                resolve(status);
+            });
+        });
+    }
+
+    private testAnyByTypePermissions(msg: Message, guildMember: GuildMember, command: ICommandPermissions, failedRequirementsArr: CommandPermissionRequirement[]): Promise<CommandPermissionResultStatus> {
+        return new Promise<CommandPermissionResultStatus>((resolve : (val: CommandPermissionResultStatus) => void) => {
+            let anyRequirementTypes: CommandPermissionType[] = this.getPermissionTypes(command.permissionRequirements.anyRequirementsByType);
+
+            let requirementTypePromise: Promise<CommandPermissionResultStatus> = Promise.resolve<CommandPermissionResultStatus>(CommandPermissionResultStatus.hasPermission);
+            for (let requirementType of anyRequirementTypes) {
+                requirementTypePromise = requirementTypePromise.then((reqTypeStatus: CommandPermissionResultStatus) => new Promise<CommandPermissionResultStatus>((resolve : (val: CommandPermissionResultStatus) => void) => {
+                    if (reqTypeStatus === CommandPermissionResultStatus.noPermission) {
+                        resolve(reqTypeStatus);
+                        return;
+                    }
+                    
+                    let requirementPromise : Promise<CommandPermissionResultStatus> = Promise.resolve<CommandPermissionResultStatus>(CommandPermissionResultStatus.noPermission);
+                    for (let i = 0; i < command.permissionRequirements.anyRequirementsByType.length; i++) {
+                        let requirement = command.permissionRequirements.anyRequirementsByType[i];
+                        if (requirement.permissionType === requirementType) {
+                            requirementPromise = requirementPromise.then((returnStatus: CommandPermissionResultStatus) => new Promise<CommandPermissionResultStatus>((resolve : (val: CommandPermissionResultStatus) => void) => {
+                                if (returnStatus === CommandPermissionResultStatus.hasPermission) {
+                                    resolve(returnStatus);
+                                    return;
+                                }
+            
+                                this.testPermission(msg, guildMember, requirement).then((hasPermission: boolean) => {
+                                    if (hasPermission) {
+                                        returnStatus = CommandPermissionResultStatus.hasPermission;
+                                    }
+            
+                                    if (returnStatus === CommandPermissionResultStatus.noPermission) {
+                                        failedRequirementsArr.push(requirement);
+                                    }
+            
+                                    resolve(returnStatus);
+                                });
+                            }));
+                        }
+                    }
+        
+                    requirementPromise.then((status: CommandPermissionResultStatus) => {
+                        resolve(status);
+                    });
+                }));
+            }
+
+            requirementTypePromise.then((finalStatus: CommandPermissionResultStatus) => {
+                resolve(finalStatus);
+            });
+        });
+    }
+
+    private testPermission(msg: Message, guildMember: GuildMember, requirement: CommandPermissionRequirement): Promise<boolean> {
+        return new Promise<boolean>((resolve : (val: boolean) => void) => {
+            switch (requirement.permissionType) {
+                case CommandPermissionType.guild:
+                    if (this.isGuild(guildMember, requirement.identifier)) {
+                        resolve(true);
+                        return;
+                    }
+                    break;
+                case CommandPermissionType.role:
+                    if (this.userIsInRole(guildMember, requirement.identifier)) {
+                        resolve(true);
+                        return;
+                    }
+                    break;
+                case CommandPermissionType.user:
+                    if (this.userIsCertainUser(guildMember, requirement.identifier)) {
+                        resolve(true);
+                        return;
+                    }
+                    break;
+                case CommandPermissionType.textchannel:
+                    if (this.msgIsInTextChannelById(msg, requirement.identifier)) {
+                        resolve(true);
+                        return;
+                    }
+                    break;
+                case CommandPermissionType.anytextchannel:
+                    if (this.msgIsInTextChannel(msg)) {
+                        resolve(true);
+                        return;
+                    }
+                    break;
+                case CommandPermissionType.custom:
+                    if (requirement.customCallback !== undefined && requirement.customCallback !== null) {
+                        requirement.customCallback(msg, guildMember, requirement).then((hasPermission: boolean) => {
+                            resolve(hasPermission);
+                            return;
+                        });
+                        return;
+                    }
+                    break;
+                default:
+                    resolve(true);
+                    return;
+            }
+    
+            resolve(false);
+            return;
+        });
     }
 
     private getPermissionTypes(permissionRequirements: CommandPermissionRequirement[]): CommandPermissionType[] {
