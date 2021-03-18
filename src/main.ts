@@ -10,12 +10,6 @@ export { IKeyedCollection, KeyedCollection, GuildCollection } from './models/Gui
 export { ErrorWithCode, GenericErrorCodes } from './models/Errors';
 export { VoiceErrorCodes } from './models/Voice';
 
-// Azure Storage Manager
-export { AzureDictionary, IAzureSavable, AzureResultStatus, IAzureResult, AzureResult,
-        IAzureBatch, AzureBatch, AzureBatchResult, AzureBatchResults, AzureBatchResultStatus,
-        AzureBatchType, AzureStorageManager, AzureCacheInMemory, AzureIdentifier, AzureCacheData, 
-        AzureTableCacheData, IAzureCache } from './data/azurestoragemanager.logic';
-
 // Helpers
 export { DiscordHelper } from './logic/helpers/discord.helper';
 export { ModelComparer } from './logic/helpers/modelcompare.helper';

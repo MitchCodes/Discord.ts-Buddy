@@ -270,7 +270,7 @@ export class CommandPermissionsService {
         return helper.msgIsInTextChannel(msg);
     }
 
-    private userHasPermissions(guildMember: GuildMember, permissionIdentifier: string): boolean {
+    public userHasPermissions(guildMember: GuildMember, permissionIdentifier: string): boolean {
         let permissionInput: string | number | Array<string> = permissionIdentifier;
         let permissionSplit: string[] = permissionIdentifier.split(',');
         if (permissionSplit.length > 1) {
