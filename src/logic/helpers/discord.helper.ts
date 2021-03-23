@@ -9,6 +9,8 @@ export class DiscordHelper {
             let currentGuildMemberUsername = currentGuildMember.user.username;
             let currentGuildMemberNick = currentGuildMember.nickname;
             let currentGuildMemberId = currentGuildMember.user.id;
+            let currentGuildMemberDisplayName = currentGuildMember.displayName;
+            let currentGuildMemberGuildId = currentGuildMember.id;
             if (currentGuildMemberUsername !== null && currentGuildMemberUsername !== undefined 
                 && currentGuildMemberUsername.toLowerCase() === nameLowered) {
                 resultingMember = currentGuildMember;
@@ -18,7 +20,15 @@ export class DiscordHelper {
                 resultingMember = currentGuildMember;
                 break;
             } else if (currentGuildMemberId !== null && currentGuildMemberId !== undefined 
-                && currentGuildMemberId === nameLowered) {
+                && currentGuildMemberId.toLowerCase() === nameLowered) {
+                resultingMember = currentGuildMember;
+                break;
+            } else if (currentGuildMemberDisplayName !== null && currentGuildMemberDisplayName !== undefined 
+                && currentGuildMemberDisplayName.toLowerCase() === nameLowered) {
+                resultingMember = currentGuildMember;
+                break;
+            } else if (currentGuildMemberGuildId !== null && currentGuildMemberGuildId !== undefined 
+                && currentGuildMemberGuildId.toLowerCase() === nameLowered) {
                 resultingMember = currentGuildMember;
                 break;
             }
