@@ -1,8 +1,9 @@
-import { GuildMember, Guild, Role, Message, TextChannel } from 'discord.js';
+import { GuildMember, Guild, Role, Message, TextChannel, Collection, Snowflake } from 'discord.js';
 
 export class DiscordHelper {
     public getMemberByNickUsernameOrId(guild: Guild, identifier: string): GuildMember {
         let resultingMember: GuildMember = null;
+
         let guildMemberArray: GuildMember[] = guild.members.cache.array();
         let nameLowered = identifier.toLowerCase();
         for (let currentGuildMember of guildMemberArray) {
@@ -35,6 +36,61 @@ export class DiscordHelper {
         }
 
         return resultingMember;
+    }
+
+    public async getMembersByNickUsernameOrIdAsync(guild: Guild, identifier: string): Promise<GuildMember[]> {
+        let resultingMembers: GuildMember[] = [];
+
+        try {
+            let membersFound: Collection<Snowflake, GuildMember> = await guild.members.fetch({ query: identifier });
+
+            if (membersFound) {
+                let guildMembersArr: GuildMember[] = membersFound.array();
+                if (guildMembersArr) {
+                    for (let guildMember of guildMembersArr) {
+                        resultingMembers.push(guildMember);
+                    }
+                }
+            }
+
+            if (resultingMembers.length === 0) {
+                let guildMemberArray: GuildMember[] = guild.members.cache.array();
+                let nameLowered = identifier.toLowerCase();
+                for (let currentGuildMember of guildMemberArray) {
+                    let currentGuildMemberUsername = currentGuildMember.user.username;
+                    let currentGuildMemberNick = currentGuildMember.nickname;
+                    let currentGuildMemberId = currentGuildMember.user.id;
+                    let currentGuildMemberDisplayName = currentGuildMember.displayName;
+                    let currentGuildMemberGuildId = currentGuildMember.id;
+                    if (currentGuildMemberUsername !== null && currentGuildMemberUsername !== undefined 
+                        && currentGuildMemberUsername.toLowerCase() === nameLowered) {
+                        resultingMembers.push(currentGuildMember);
+                        break;
+                    } else if (currentGuildMemberNick !== null && currentGuildMemberNick !== undefined 
+                        && currentGuildMemberNick.toLowerCase() === nameLowered) {
+                            resultingMembers.push(currentGuildMember);
+                        break;
+                    } else if (currentGuildMemberId !== null && currentGuildMemberId !== undefined 
+                        && currentGuildMemberId.toLowerCase() === nameLowered) {
+                        resultingMembers.push(currentGuildMember);
+                        break;
+                    } else if (currentGuildMemberDisplayName !== null && currentGuildMemberDisplayName !== undefined 
+                        && currentGuildMemberDisplayName.toLowerCase() === nameLowered) {
+                        resultingMembers.push(currentGuildMember);
+                        break;
+                    } else if (currentGuildMemberGuildId !== null && currentGuildMemberGuildId !== undefined 
+                        && currentGuildMemberGuildId.toLowerCase() === nameLowered) {
+                        resultingMembers.push(currentGuildMember);
+                        break;
+                    }
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            return [];
+        }
+
+        return resultingMembers;
     }
 
     public doesGuildMatchId(guild: Guild, identifier: string): boolean {
