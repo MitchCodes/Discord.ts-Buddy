@@ -26,6 +26,7 @@ export class CommandParser {
     }
 
     private findRequestedCommand(matchingSettings: CommandMatchingSettings, rawInputCommand: string, args: string[]): ICommandFactory {
+        let commandName: string = args[0];
 
         switch (matchingSettings.matchingType) {
             case CommandMatchingType.exactMatch:
@@ -36,7 +37,6 @@ export class CommandParser {
                 }
                 break;
             case CommandMatchingType.prefixedOneWord:
-                let commandName: string = args[0];
                 for (let comm of this.availableCommands) {
                     let prefixedCommandName = matchingSettings.prefix + comm.commandMatchText;
                     if (prefixedCommandName === commandName) {

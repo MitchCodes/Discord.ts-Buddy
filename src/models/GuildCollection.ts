@@ -1,7 +1,8 @@
+/* eslint-disable no-prototype-builtins */
 import { Guild } from 'discord.js';
 
 export interface IKeyedCollection<T> {
-    add(key: string, value: T);
+    add(key: string, value: T): void;
     containsKey(key: string): boolean;
     count(): number;
     item(key: string): T;
@@ -23,7 +24,7 @@ export class KeyedCollection<T> implements IKeyedCollection<T> {
         return this.theCount;
     }
  
-    public add(key: string, value: T) {
+    public add(key: string, value: T): void {
         if (!this.items.hasOwnProperty(key)) {
             this.theCount = this.theCount + 1;
         }             
@@ -47,7 +48,7 @@ export class KeyedCollection<T> implements IKeyedCollection<T> {
         let keySet: string[] = [];
  
         // tslint:disable-next-line:no-for-in no-var-keyword
-        for (var prop in this.items) {
+        for (let prop in this.items) {
             if (this.items.hasOwnProperty(prop)) {
                 keySet.push(prop);
             }
@@ -60,7 +61,7 @@ export class KeyedCollection<T> implements IKeyedCollection<T> {
         let values: T[] = [];
  
         // tslint:disable-next-line:no-for-in no-var-keyword
-        for (var prop in this.items) {
+        for (let prop in this.items) {
             if (this.items.hasOwnProperty(prop)) {
                 values.push(this.items[prop]);
             }
@@ -85,11 +86,11 @@ export class GuildCollection<T> {
         return this.collection.count();
     }
  
-    public addById(guildId: string, value: T) { 
+    public addById(guildId: string, value: T): void { 
         this.collection.add(guildId, value);
     }
 
-    public add(guild: Guild, value: T) { 
+    public add(guild: Guild, value: T): void { 
         this.collection.add(guild.id, value);
     }
  

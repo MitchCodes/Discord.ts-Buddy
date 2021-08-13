@@ -14,7 +14,6 @@ export { VoiceErrorCodes } from './models/Voice';
 export { DiscordHelper } from './logic/helpers/discord.helper';
 export { ModelComparer } from './logic/helpers/modelcompare.helper';
 export { StringHelper } from './logic/helpers/string.helper';
-export { BasicDictionary, StreamDispatcherError, PlaySoundResult, VoiceChannelManager } from './logic/voicechannel.logic';
 
 // Bots
 export { BotManager } from './logic/botmanager.logic';

@@ -283,9 +283,9 @@ export class CommandPermissionsService {
             permissionInput = Number(permissionIdentifier);
         }
 
-        let permissions: Permissions = new Permissions((<BitFieldResolvable<PermissionString>>permissionInput));
+        let permissions: Permissions = new Permissions((<BitFieldResolvable<PermissionString, bigint>>permissionInput));
         
-        return guildMember.hasPermission(permissions);
+        return guildMember.permissions.has(permissions);
     }
 
     private isNumeric(num){

@@ -1,8 +1,7 @@
 import { Logger, createLogger, transports } from 'winston';
 import * as nconf from 'nconf';
-import { Client, Guild, VoiceChannel, VoiceConnection, TextChannel } from 'discord.js';
+import { Guild, VoiceChannel, TextChannel } from 'discord.js';
 import { MultiGuildBot } from '../../src/logic/bots/multi-guild-bot';
-import { doesNotThrow } from 'assert';
 import { TestBot } from './testbot';
 
 describe('multi-guild-bot tests', () => {
@@ -20,7 +19,9 @@ describe('multi-guild-bot tests', () => {
 
     let voiceChannelName: string = '';
 
-    beforeAll((finishBeforeAll) => {
+    jest.setTimeout(300000);
+
+    beforeAll(async () => {
         // Even though this file is in two directories deep, the context of running the tests is in the root folder.
         nconf.file({ file: './config.common.json' });
         nconf.defaults({
@@ -46,63 +47,72 @@ describe('multi-guild-bot tests', () => {
             ],
           });
         
-        if (mainBotToken !== '' && secondBotToken !== '') {
+        if (mainBotToken&& secondBotToken) {
             mainBotClient = new TestBot('Main Bot', mainBotToken, logger, nconf);
             secondBotClient = new MultiGuildBot('Second Bot', secondBotToken, logger, nconf);
 
             logger.info('Main Token: ' + mainBotToken);
 
-            return mainBotClient.startBot().then(() => {
-                return new Promise((resolve) => {
-                    mainBotClient.onBotReady.subscribe(() => {
-                        for (let guild of mainBotClient.guilds) {
-                            if (guild.id === guildTestOnId) {
-                                mainBotTestGuild = guild;
-                                break;
-                            }
-                        } 
-    
-                        secondBotClient.startBot().then(() => {
-                            resolve();
-                        });
-                    });
-                });                
-            }).then(() => {
-                return new Promise((resolve) => {
-                    secondBotClient.onBotReady.subscribe(() => {
-                        for (let guild of secondBotClient.guilds) {
-                            if (guild.id === guildTestOnId) {
-                                secondBotTestGuild = guild;
-                                break;
-                            }
+            let mainBotReadySubscription: Promise<void> = new Promise<void>((resolve) => {
+                mainBotClient.onBotReady.subscribe(() => {
+                    for (let guild of mainBotClient.guilds) {
+                        if (guild.id === guildTestOnId) {
+                            mainBotTestGuild = guild;
+                            break;
                         }
-        
-                        if (mainBotTestGuild !== null && mainBotTestGuild !== undefined) {
-                            for (let channel of mainBotTestGuild.channels.cache) {
-                                if (channel[1].name === voiceChannelName && channel[1].type === 'voice') {
-                                    mainBotVoiceChannel = <VoiceChannel>channel[1];
-                                }
-                            }
-                        }
+                    }
 
-                        resolve();
-                    });
+
+                    resolve();
                 });
-            }).then(() => {
-                finishBeforeAll();
             });
+            
+            let secondBotReadySubscription: Promise<void> = new Promise<void>((resolve) => {
+                secondBotClient.onBotReady.subscribe(() => {
+                    for (let guild of secondBotClient.guilds) {
+                        if (guild.id === guildTestOnId) {
+                            secondBotTestGuild = guild;
+                            break;
+                        }
+                    }
+    
+                    if (mainBotTestGuild !== null && mainBotTestGuild !== undefined) {
+                        for (let channel of mainBotTestGuild.channels.cache) {
+                            if (channel[1].name === voiceChannelName && channel[1].type === 'GUILD_VOICE') {
+                                mainBotVoiceChannel = <VoiceChannel>channel[1];
+                            }
+                        }
+                    }
+
+                    resolve();
+                });
+            });
+
+            await mainBotClient.startBot();
+            await secondBotClient.startBot();
+            await mainBotReadySubscription;
+            await secondBotReadySubscription;
+
+            return;
         } else {
-            return Promise.resolve();
+            return;
         }
         
     });
 
-    afterAll(() => {
-        return mainBotClient.stopBot().then(() => {
-            return secondBotClient.stopBot();
-        }).then(() => {
-            setTimeout(() => { process.exit(); }, 1000);
+    afterAll(async () => {
+        await mainBotClient.stopBot();
+        await secondBotClient.stopBot();
+
+        let timeoutPromise: Promise<void> = new Promise<void>((resolve) => {
+            setTimeout(() => { 
+                resolve(); 
+            }, 1000);
         });
+       
+        await timeoutPromise;
+
+        return;
     });
 
     test('main token set', () => {
@@ -132,8 +142,8 @@ describe('multi-guild-bot tests', () => {
     });
 
     test('can send message', (finish) => {
-        for (let channel of secondBotTestGuild.channels.cache.array()) {
-            if (channel.type === 'text' && channel.name === 'botcommands') {
+        for (let channel of [...secondBotTestGuild.channels.cache.values()]) {
+            if (channel.type === 'GUILD_TEXT' && channel.name === 'botcommands') {
                 (<TextChannel>channel).send('!ping');
                 finish();
                 break;
@@ -148,21 +158,4 @@ describe('multi-guild-bot tests', () => {
             finish();
         }, 1000);
     });
-
-    // test('can join voice channel', (done: any) => {
-    //     mainBotVoiceChannel.join().then((voiceConn: VoiceConnection) => {
-    //         logger.info('connected');
-    //         voiceConn.on('disconnect', () => {
-    //             logger.info('disconnected');
-    //             expect(true).toBeTruthy();
-    //             done();
-    //         });
-    //         expect(true).toBeTruthy();
-    //         voiceConn.disconnect();
-    //     }).catch((reason: any) => {
-    //         logger.error('Error connecting to voice channel: ' + reason);
-    //         done();
-    //     });
-    // },   15000);
-
 });

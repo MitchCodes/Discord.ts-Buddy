@@ -1,9 +1,10 @@
-import { Logger, createLogger, transports } from 'winston';
+/* eslint-disable @typescript-eslint/no-empty-function */
+import { Logger } from 'winston';
 import { Provider } from 'nconf';
 import { IDiscordBot, BotStatus, IAutoManagedBot } from '../../models/DiscordBot';
 import { ICommandPermissions, CommandPermissionFeedbackType, CommandPermissionResult, 
         CommandPermissionResultStatus } from '../../models/CommandPermission';
-import { Client, Guild, Message, TextChannel, VoiceChannel } from 'discord.js';
+import { BitFieldResolvable, Client, Guild, Intents, IntentsString, Message, TextChannel } from 'discord.js';
 
 // tslint:disable-next-line:no-submodule-imports
 import * as Rx from 'rxjs/Rx';
@@ -11,9 +12,6 @@ import { CommandParser } from '../command.logic';
 import { ICommand, ICommandResult, CommandResult, CommandResultStatus } from '../../models/Command';
 import { CommandPermissionsService } from '../services/permissions.service';
 import { MessengerService } from '../services/messenger.service';
-import { GuildCollection } from '../../main';
-import { VoiceChannelManager } from '../voicechannel.logic';
-import { ErrorWithCode } from '../../models/Errors';
 
 export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
     public guilds: Guild[] = [];
@@ -36,7 +34,6 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
     protected botClient: Client = null;
     protected status: BotStatus = BotStatus.inactive;
     protected commandParsers: CommandParser[] = [];
-    private voiceChannelManagers: GuildCollection<VoiceChannelManager> = new GuildCollection();
 
     constructor(passedBotName: string, passedBotToken: string, passedLogger: Logger, 
                 passedConf: Provider) {
@@ -49,35 +46,38 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         this.setupBot();
     }
 
-    public startBot(): Promise<string> {
-        return new Promise<string>((resolve : (val: string) => void, reject : (val: string) => void) => {
-            if (this.botToken === '') {
-                this.botError('No token found');
-                reject('No token found');
+    public async startBot(intents: BitFieldResolvable<IntentsString, number> = null): Promise<string> {
+        if (this.botToken === '') {
+            this.botError('No token found');
+            throw 'No token found';
+        }
 
-                return;
-            }
-    
-            this.botClient = new Client();
-            this.setupBotEvents();
-            this.botClient.login(this.botToken).then(() => {
-                this.botInfo('Logged in.');
-                this.onBotLoggedIn.next(true);
-                resolve('logged in');
-            }).catch((err: any) => {
-                this.botError('Error logging in bot: ' + err);
-                reject('Error logging in: ' + err);
-            });
-        });
+        if (!intents) {
+            intents = [Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_VOICE_STATES,
+                Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
+                Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.DIRECT_MESSAGE_REACTIONS];
+        }
+
+        this.botClient = new Client({ intents: intents });
+        this.setupBotEvents();
+
+        try {
+            await this.botClient.login(this.botToken);
+            this.botInfo('Logged in.');
+            this.onBotLoggedIn.next(true);
+
+            return 'logged in';
+        } catch (err) {
+            this.botError('Error logging in bot: ' + err);
+            throw err;
+        }
     }
 
-    public stopBot(): Promise<string> {
-        return new Promise<string>((resolve : (val: string) => void, reject : (val: string) => void) => {
-            this.botClient.destroy();
-            this.botInfo('Stopped.');
-            this.onBotLoggedOut.next(true);
-            resolve('stopped');
-        });
+    public async stopBot(): Promise<string> {
+        this.botClient.destroy();
+        this.botInfo('Stopped.');
+        this.onBotLoggedOut.next(true);
+        return 'stopped';
     }
 
     // tslint:disable-next-line:no-empty
@@ -113,87 +113,71 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         this.onBotRequiresRestart.next(err);
     }
 
-    public getVoiceChannelManager(guild: Guild): VoiceChannelManager {
-        let manager: VoiceChannelManager = this.voiceChannelManagers.item(guild);
-        if (manager === undefined || manager === null) {
-            manager = new VoiceChannelManager(this.logger, this.conf);
-            this.voiceChannelManagers.add(guild, manager);
-        }
-
-        return manager;
-    }
-
     // tslint:disable-next-line:no-empty
     protected setupCommandPreExecute(command: ICommand): void {
+    }
+
+    private isICommandResultError(object: any): object is ICommandResult {
+        return 'error' in object && 'message' in object && 'commandName' in object;
     }
 
     protected handleMessage(msg: Message): void {
         for (let commandParser of this.commandParsers) {
             let command: ICommand = commandParser.parseCommand(msg.content);
             if (command !== null) {
-                this.handleCommand(command, msg).catch((cmdErr: ICommandResult) => {
-                    this.botError('Error processing command ' + command.commandName + ': ' 
+                try {
+                    this.handleCommand(command, msg);
+                } catch (cmdErr) {
+                    if (this.isICommandResultError(cmdErr)) {
+                        this.botError('Error processing command ' + command.commandName + ': ' 
                                     + cmdErr.error + ' - Message: ' + cmdErr.message);
-                });
+                    } else {
+                        this.botError('Error handling message by ' + msg.member.nickname + ': ' + cmdErr);
+                    }
+                }
             }
         }
     }
 
-    protected handleCommand(command: ICommand, msg: Message): Promise<ICommandResult> {
-        return new Promise<ICommandResult>((resolve : (val: ICommandResult) => void, reject : (val: ICommandResult) => void) => {
-            // handle permissions
-            let commandAny: any = <any>command;
+    protected async handleCommand(command: ICommand, msg: Message): Promise<ICommandResult> {
+        // handle permissions
+        let commandAny: any = <any>command;
 
-            let permissionPromise: Promise<boolean> = new Promise<boolean>((resolve : (val: boolean) => void, reject : (val: any) => void) => {
-                if (commandAny.permissionRequirements !== undefined && commandAny.permissionRequirements !== null) {
-                    let commandPermissions = <ICommandPermissions>commandAny;
-                    commandPermissions.setupPermissions(this, msg);
-                    let permissionService: CommandPermissionsService = new CommandPermissionsService();
-                    
-                    permissionService.hasPermissions(commandPermissions, msg).then((permissionResult: CommandPermissionResult) => {
-                        if (permissionResult.permissionStatus === CommandPermissionResultStatus.noPermission) {
-                            let result: CommandResult = new CommandResult();
-                            result.replyHandled = true;
-                            result.error = new Error('Lack of permissions');
-                            result.message = 'Lack permission to run this';
-                            result.status = CommandResultStatus.error;
-                            this.botInfo('User ' + msg.member.user.username + ' tried to run command ' + command.commandName 
-                                        + '(' + msg.content + ') and lacked permission.');
-                            this.handleLackPermissionReply(commandPermissions, msg);
-                            this.handleLackPermissionDeleteMessage(permissionResult, msg);
-                            reject(result);
+        let hasPermissions: boolean = true;
+        let permissionCommandResult: CommandResult = null;
+        if (commandAny.permissionRequirements !== undefined && commandAny.permissionRequirements !== null) {
+            let commandPermissions = <ICommandPermissions>commandAny;
+            commandPermissions.setupPermissions(this, msg);
+            let permissionService: CommandPermissionsService = new CommandPermissionsService();
 
-                            return;
-                        }
-    
-                        resolve(true);
-                    });
-                } else {
-                    resolve(true);
-                }
-            });
+            let permissionResult: CommandPermissionResult = await permissionService.hasPermissions(commandPermissions, msg);
+            if (permissionResult.permissionStatus === CommandPermissionResultStatus.noPermission) {
+                hasPermissions = false;
 
-            permissionPromise.then(() => {
-                // they have permission, run the command
-                this.setupCommandPreExecute(command);
-                command.execute(this, msg).then((executeResult: ICommandResult) => {
-                    if (executeResult.status === CommandResultStatus.error) {
-                        reject(executeResult);
-        
-                        return;
-                    }
+                permissionCommandResult = CommandResult.buildSimpleError('Lack permission to run this', new Error('Lack of permissions'));
+                permissionCommandResult.replyHandled = true;
+                
+                this.botInfo('User ' + msg.member.user.username + ' tried to run command ' + command.commandName 
+                            + '(' + msg.content + ') and lacked permission.');
+                this.handleLackPermissionReply(commandPermissions, msg);
+                this.handleLackPermissionDeleteMessage(permissionResult, msg);                
+            }
+        }
 
-                    resolve(executeResult);
-                }).catch((executeResult: ICommandResult) => {
-                    reject(executeResult);
+        if (hasPermissions) {
+            // they have permission, run the command
+            this.setupCommandPreExecute(command);
 
-                    return;
-                });
-            }).catch((err: any) => {
-                // no permission result or error
-                reject(err);
-            });
-        });
+            let executeResult: ICommandResult = await command.execute(this, msg);
+
+            if (executeResult.status === CommandResultStatus.error) {
+                throw executeResult;
+            }
+
+            return executeResult;
+        } else {
+            throw permissionCommandResult;
+        }
     }
 
     protected handleLackPermissionReply(commandPermissions: ICommandPermissions, msg: Message): void {
@@ -238,11 +222,11 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
     }
 
     private updateGuildsConnectedTo(): void {
-        this.guilds = this.botClient.guilds.cache.array();
+        this.guilds = [...this.botClient.guilds.cache.values()];
     }
 
     private setupBotEvents(): void {
-        this.botClient.on('message', (message: Message) => {
+        this.botClient.on('messageCreate', (message: Message) => {
             this.onBotMessage.next(message);
         });
 

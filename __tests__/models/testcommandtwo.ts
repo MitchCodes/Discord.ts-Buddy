@@ -1,9 +1,8 @@
 import { ICommand, ICommandFactory, ICommandResult, CommandResult, CommandResultStatus } from '../../src/models/Command';
-import { Message, TextChannel, GuildMember } from 'discord.js';
+import { Message, GuildMember } from 'discord.js';
 import { ICommandPermissions, CommandPermissionRequirementSettings, CommandPermissionFeedbackType, 
     CommandPermissionType, CommandPermissionRequirement } from '../../src/models/CommandPermission';
 import { IDiscordBot } from '../../src/models/DiscordBot';
-import { DH_NOT_SUITABLE_GENERATOR } from 'constants';
 import { TestBot } from '../bots/testbot';
 
 export class TestCommandTwo implements ICommand, ICommandFactory, ICommandPermissions {
@@ -66,6 +65,11 @@ export class TestCommandTwo implements ICommand, ICommandFactory, ICommandPermis
         this.permissionFailReplyType = CommandPermissionFeedbackType.direct;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    public setupPermissions(bot: IDiscordBot, msg: Message): void {
+        
+    }
+
     public getPermissionFailReplyText(msg: Message): string {
         return 'You do not have permission to ping pong.';
     }
@@ -89,9 +93,5 @@ export class TestCommandTwo implements ICommand, ICommandFactory, ICommandPermis
             result.status = CommandResultStatus.success;
             resolve(result);
         });
-    }
-
-    public setupPermissions(bot: IDiscordBot, msg: Message) {
-
     }
 }

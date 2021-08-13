@@ -12,10 +12,12 @@ export class MessengerService {
 
             for (let curTextToSend of textToSend) {
                 channel.send({
-                    embed: {
-                        color: bot.color,
-                        description: curTextToSend,
-                    },
+                    embeds: [
+                        {
+                            color: bot.color,
+                            description: curTextToSend,
+                        }
+                    ],
                 }).then((res: any) => {
                     resolve('Success');
                 }).catch((reason: any) => {
@@ -35,10 +37,12 @@ export class MessengerService {
 
             for (let curTextToSend of textToSend) {
                 user.send({
-                    embed: {
-                        color: bot.color,
-                        description: curTextToSend,
-                    },
+                    embeds: [
+                        {
+                            color: bot.color,
+                            description: curTextToSend,
+                        }
+                    ],
                 }).then((res: any) => {
                     resolve('Success');
                 }).catch((reason: any) => {

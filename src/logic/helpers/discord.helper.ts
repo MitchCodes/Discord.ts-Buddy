@@ -4,7 +4,7 @@ export class DiscordHelper {
     public getMemberByNickUsernameOrId(guild: Guild, identifier: string): GuildMember {
         let resultingMember: GuildMember = null;
 
-        let guildMemberArray: GuildMember[] = guild.members.cache.array();
+        let guildMemberArray: GuildMember[] = [...guild.members.cache.values()];
         let nameLowered = identifier.toLowerCase();
         for (let currentGuildMember of guildMemberArray) {
             let currentGuildMemberUsername = currentGuildMember.user.username;
@@ -45,7 +45,7 @@ export class DiscordHelper {
             let membersFound: Collection<Snowflake, GuildMember> = await guild.members.fetch({ query: identifier });
 
             if (membersFound) {
-                let guildMembersArr: GuildMember[] = membersFound.array();
+                let guildMembersArr: GuildMember[] = [...membersFound.values()];
                 if (guildMembersArr) {
                     for (let guildMember of guildMembersArr) {
                         resultingMembers.push(guildMember);
@@ -54,7 +54,7 @@ export class DiscordHelper {
             }
 
             if (resultingMembers.length === 0) {
-                let guildMemberArray: GuildMember[] = guild.members.cache.array();
+                let guildMemberArray: GuildMember[] = [...guild.members.cache.values()];
                 let nameLowered = identifier.toLowerCase();
                 for (let currentGuildMember of guildMemberArray) {
                     let currentGuildMemberUsername = currentGuildMember.user.username;
@@ -136,7 +136,7 @@ export class DiscordHelper {
     }
 
     public msgIsInTextChannel(msg: Message): boolean {
-        if (msg.channel.type === "text") {
+        if (msg.channel.type === "GUILD_TEXT") {
             return true;
         }
 
@@ -145,7 +145,7 @@ export class DiscordHelper {
 
     public msgIsInTextChannelById(msg: Message, identifier: string): boolean {
         let identifierLowered: string = identifier.toLowerCase();
-        if (msg.channel.type === "text") {
+        if (msg.channel.type === "GUILD_TEXT") {
             let textChannel: TextChannel = <TextChannel>msg.channel;
             if (textChannel.name.toLowerCase() === identifierLowered) {
                 return true;

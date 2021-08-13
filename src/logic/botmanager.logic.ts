@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { IDiscordBot, BotStatus, IAutoManagedBot } from '../models/DiscordBot';
 import { BotRestartSettings } from '../models/BotRestartSettings';
 // tslint:disable-next-line:no-submodule-imports
 import * as Rx from 'rxjs/Rx';
-import { Logger, createLogger, transports } from 'winston';
+import { Logger } from 'winston';
+import { BitFieldResolvable, IntentsString } from 'discord.js';
 
 export class BotManager<T extends IDiscordBot & IAutoManagedBot> {
     public onBotMaxRestartAttempts: Rx.Subject<boolean> = new Rx.Subject<boolean>();
@@ -20,7 +22,7 @@ export class BotManager<T extends IDiscordBot & IAutoManagedBot> {
     }
 
     /// This function assumes success. We are letting this manager handle the stopping and starting of bots.
-    public startBot(isRestart: boolean = false): void {
+    public startBot(isRestart: boolean = false, intents: BitFieldResolvable<IntentsString, number> = null): void {
         if (this.bot.getStatus() === BotStatus.active) {
             this.logger.info('Bot \'' + this.bot.name + '\' is already logged in and there is no point to starting it.');
 
@@ -34,7 +36,7 @@ export class BotManager<T extends IDiscordBot & IAutoManagedBot> {
             return;
         }
 
-        this.bot.startBot().then(() => {
+        this.bot.startBot(intents).then(() => {
             if (isRestart) {
                 this.logger.info('Bot \'' + this.bot.name + '\' has successfully started/restarted on attempt #' + this.botStartAttempts);
             }

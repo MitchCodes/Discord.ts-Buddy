@@ -1,6 +1,7 @@
 // tslint:disable-next-line:no-submodule-imports
+import { BitFieldResolvable, IntentsString } from 'discord.js';
 import * as Rx from 'rxjs/Rx';
-import { Logger, createLogger, transports } from 'winston';
+import { Logger } from 'winston';
 
 export interface IDiscordBot {
     name: string;
@@ -8,7 +9,7 @@ export interface IDiscordBot {
     logger: Logger;
 
     setupBot(): void;
-    startBot(): Promise<string>;
+    startBot(intents: BitFieldResolvable<IntentsString, number>): Promise<string>;
     stopBot(): Promise<string>;
     getStatus(): BotStatus;
     setStatus(status: BotStatus): void;
