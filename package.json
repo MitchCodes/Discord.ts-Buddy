@@ -1,6 +1,6 @@
 {
   "name": "discord.ts-buddy",
-  "version": "1.0.31",
+  "version": "1.1.0",
   "description": "TypeScript helper classes for use with Discord.js bots.",
   "engineStrict": true,
   "main": "./build/src/main.js",
@@ -31,7 +31,7 @@
     "test:watch": "jest --watch",
     "test-basic": "jest",
     "test-bots": "jest --rootDir=./ --config=./jest/jest.bots.config.js",
-    "publish-npm": "npm run clean && npm run build-prod && npm publish --access publish"
+    "publish-npm": "npm run clean && npm run build-prod && npm publish --access public"
   },
   "author": "Mitch Chiles <mitchchiles@gmail.com>",
   "repository": {
