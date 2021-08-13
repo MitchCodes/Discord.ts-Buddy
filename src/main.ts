@@ -10,6 +10,8 @@ export { IKeyedCollection, KeyedCollection, GuildCollection } from './models/Gui
 export { ErrorWithCode, GenericErrorCodes } from './models/Errors';
 export { VoiceErrorCodes } from './models/Voice';
 
+export { BasicDictionary } from './models/BasicDictionary';
+
 // Helpers
 export { DiscordHelper } from './logic/helpers/discord.helper';
 export { ModelComparer } from './logic/helpers/modelcompare.helper';
