@@ -31,7 +31,7 @@
     "test:watch": "jest --watch",
     "test-basic": "jest",
     "test-bots": "jest --rootDir=./ --config=./jest/jest.bots.config.js",
-    "publish-npm": "npm run clean && npm run build-prod && npm publish"
+    "publish-npm": "npm run clean && npm run build-prod && npm publish --access publish"
   },
   "author": "Mitch Chiles <mitchchiles@gmail.com>",
   "repository": {
