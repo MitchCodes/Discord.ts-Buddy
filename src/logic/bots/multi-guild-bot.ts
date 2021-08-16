@@ -9,7 +9,7 @@ import { BitFieldResolvable, Client, Guild, Intents, IntentsString, Message, Tex
 // tslint:disable-next-line:no-submodule-imports
 import * as Rx from 'rxjs/Rx';
 import { CommandParser } from '../command.logic';
-import { ICommand, ICommandResult, CommandResult, CommandResultStatus } from '../../models/Command';
+import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext } from '../../models/Command';
 import { CommandPermissionsService } from '../services/permissions.service';
 import { MessengerService } from '../services/messenger.service';
 
@@ -145,12 +145,12 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
 
         let hasPermissions: boolean = true;
         let permissionCommandResult: CommandResult = null;
-        if (commandAny.permissionRequirements !== undefined && commandAny.permissionRequirements !== null) {
+        if (commandAny.permissionRequirements) {
             let commandPermissions = <ICommandPermissions>commandAny;
-            commandPermissions.setupPermissions(this, msg);
+            commandPermissions.setupPermissions(this, CommandInputContext.message, msg, null);
             let permissionService: CommandPermissionsService = new CommandPermissionsService();
 
-            let permissionResult: CommandPermissionResult = await permissionService.hasPermissions(commandPermissions, msg);
+            let permissionResult: CommandPermissionResult = await permissionService.hasPermissions(commandPermissions, CommandInputContext.message, msg, null);
             if (permissionResult.permissionStatus === CommandPermissionResultStatus.noPermission) {
                 hasPermissions = false;
 
@@ -182,7 +182,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
 
     protected handleLackPermissionReply(commandPermissions: ICommandPermissions, msg: Message): void {
         let messengerService: MessengerService = new MessengerService();
-        let replyMessage: string = commandPermissions.getPermissionFailReplyText(msg);
+        let replyMessage: string = commandPermissions.getPermissionFailReplyText(CommandInputContext.message, msg, null);
         switch (commandPermissions.permissionFailReplyType) {
             case CommandPermissionFeedbackType.silent:
                 break;

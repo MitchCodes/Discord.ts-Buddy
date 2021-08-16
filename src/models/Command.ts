@@ -8,6 +8,11 @@ export enum CommandResultStatus {
     error = 3,
 }
 
+export enum CommandInputContext {
+    message = 0,
+    interaction = 1,
+}
+
 export interface ICommandResult {
     status: CommandResultStatus;
     error: Error;

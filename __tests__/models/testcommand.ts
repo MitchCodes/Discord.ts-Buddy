@@ -1,7 +1,7 @@
-import { ICommand, ICommandFactory, ICommandResult, CommandResult, CommandResultStatus } from '../../src/models/Command';
-import { Message, GuildMember } from 'discord.js';
+import { ICommand, ICommandFactory, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext } from '../../src/models/Command';
+import { Message, GuildMember, Interaction } from 'discord.js';
 import { ICommandPermissions, CommandPermissionRequirementSettings, CommandPermissionFeedbackType, 
-    CommandPermissionType, CommandPermissionRequirement } from '../../src/models/CommandPermission';
+    CommandPermissionType, CommandPermissionRequirement, CommandPermissionGrantRevokeType } from '../../src/models/CommandPermission';
 import { IDiscordBot } from '../../src/models/DiscordBot';
 import { TestBot } from '../bots/testbot';
 
@@ -20,68 +20,61 @@ export class TestCommand implements ICommand, ICommandFactory, ICommandPermissio
         let textChannelReq: CommandPermissionRequirement = new CommandPermissionRequirement();
         textChannelReq.permissionType = CommandPermissionType.textchannel;
         textChannelReq.identifier = 'botcommands';
+        textChannelReq.successGrantRevokeType = CommandPermissionGrantRevokeType.grant;
 
         let customReq: CommandPermissionRequirement = new CommandPermissionRequirement();
         customReq.permissionType = CommandPermissionType.custom;
-        customReq.customCallback = ((msg: Message, guildMember: GuildMember, requirement: CommandPermissionRequirement): Promise<boolean> => {
+        customReq.customCallback = ((commandInputContext: CommandInputContext, msg: Message, interaction: Interaction, guildMember: GuildMember, requirement: CommandPermissionRequirement): Promise<boolean> => {
             return Promise.resolve<boolean>(true);
         });
+        customReq.successGrantRevokeType = CommandPermissionGrantRevokeType.grant;
 
         let customFailReq: CommandPermissionRequirement = new CommandPermissionRequirement();
         customFailReq.permissionType = CommandPermissionType.custom;
-        customFailReq.customCallback = ((msg: Message, guildMember: GuildMember, requirement: CommandPermissionRequirement): Promise<boolean> => {
+        customFailReq.customCallback = ((commandInputContext: CommandInputContext, msg: Message, interaction: Interaction, guildMember: GuildMember, requirement: CommandPermissionRequirement): Promise<boolean> => {
             return Promise.resolve<boolean>(false);
         });
+        customFailReq.successGrantRevokeType = CommandPermissionGrantRevokeType.grant;
 
         let permissionReq: CommandPermissionRequirement = new CommandPermissionRequirement();
         permissionReq.permissionType = CommandPermissionType.permission;
         permissionReq.identifier = 'ADMINISTRATOR';
+        permissionReq.failGrantRevokeType = CommandPermissionGrantRevokeType.revoke;
 
 
         let anyBizarreReq: CommandPermissionRequirement = new CommandPermissionRequirement();
         anyBizarreReq.permissionType = CommandPermissionType.textchannel;
         anyBizarreReq.identifier = 'kjahsdkjshdskjhd';
+        anyBizarreReq.successGrantRevokeType = CommandPermissionGrantRevokeType.grant;
 
         let anyTextForAnyReq: CommandPermissionRequirement = new CommandPermissionRequirement();
         anyTextForAnyReq.permissionType = CommandPermissionType.anytextchannel;
+        anyTextForAnyReq.successGrantRevokeType = CommandPermissionGrantRevokeType.grant;
 
-
-        let anyByTypeAnyTextChannelReq: CommandPermissionRequirement = new CommandPermissionRequirement();
-        anyByTypeAnyTextChannelReq.permissionType = CommandPermissionType.anytextchannel;
-
-        let anyByTypeTextChannelReq: CommandPermissionRequirement = new CommandPermissionRequirement();
-        anyByTypeTextChannelReq.permissionType = CommandPermissionType.textchannel;
-        anyByTypeTextChannelReq.identifier = 'botcommands';
-
-        let anyByTypeBizarreReq: CommandPermissionRequirement = new CommandPermissionRequirement();
-        anyByTypeBizarreReq.permissionType = CommandPermissionType.textchannel;
-        anyByTypeBizarreReq.identifier = 'asdsdsd';
 
 
         this.permissionRequirements = new CommandPermissionRequirementSettings();
-        this.permissionRequirements.allRequirements.push(anyTextChannelReq);
-        this.permissionRequirements.allRequirements.push(textChannelReq);
-        this.permissionRequirements.allRequirements.push(customReq);
-        this.permissionRequirements.allRequirements.push(permissionReq);
+        this.permissionRequirements.requirements.push(anyTextChannelReq);
+        this.permissionRequirements.requirements.push(textChannelReq);
+        this.permissionRequirements.requirements.push(customReq);
+        this.permissionRequirements.requirements.push(permissionReq);
 
-        this.permissionRequirements.anyRequirements.push(anyBizarreReq);
-        this.permissionRequirements.anyRequirements.push(anyTextForAnyReq);
+        this.permissionRequirements.requirements.push(anyBizarreReq);
+        this.permissionRequirements.requirements.push(anyTextForAnyReq);
 
-        this.permissionRequirements.anyRequirementsByType.push(anyByTypeAnyTextChannelReq);
-        this.permissionRequirements.anyRequirementsByType.push(anyByTypeTextChannelReq);
-        this.permissionRequirements.anyRequirementsByType.push(customReq);
-        this.permissionRequirements.anyRequirementsByType.push(customFailReq);
+        this.permissionRequirements.requirements.push(customReq);
+        //this.permissionRequirements.requirements.push(customFailReq);
 
         this.permissionFailReplyType = CommandPermissionFeedbackType.direct;
 
     }
-
+    
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    public setupPermissions(bot: IDiscordBot, msg: Message): void {
+    public setupPermissions(bot: IDiscordBot, commandInputContext: CommandInputContext, msg: Message, interaction: Interaction): void {
         
     }
 
-    public getPermissionFailReplyText(msg: Message): string {
+    public getPermissionFailReplyText(commandInputContext: CommandInputContext, msg: Message, interaction: Interaction): string {
         return 'You do not have permission to ping pong.';
     }
 

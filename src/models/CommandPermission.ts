@@ -1,5 +1,6 @@
-import { Message, GuildMember } from 'discord.js';
+import { Message, GuildMember, Interaction } from 'discord.js';
 import { IDiscordBot } from '../main';
+import { CommandInputContext } from './Command';
 
 export enum CommandPermissionType {
     user,
@@ -17,24 +18,35 @@ export enum CommandPermissionFeedbackType {
     textchannel,
 }
 
+export enum CommandPermissionGrantRevokeType {
+    grant = 0,
+    revoke = 1,
+    none = 2,
+}
+
 export class CommandPermissionRequirement {
     public permissionType: CommandPermissionType;
     public identifier: string;
     public deleteMessageIfFail: boolean;
-    public customCallback: (msg: Message, guildMember: GuildMember, requirement: CommandPermissionRequirement) => Promise<boolean>;
+    /** What to do when the requirement is met */
+    public successGrantRevokeType: CommandPermissionGrantRevokeType = CommandPermissionGrantRevokeType.none;
+    /** What to do when the requirement is not met */
+    public failGrantRevokeType: CommandPermissionGrantRevokeType = CommandPermissionGrantRevokeType.none;
+    /** The higher the priority, the more it takes precedence over other requirements that include or exclude. */
+    public priority: number = 1;
+    public customCallback: (commandInputContext: CommandInputContext, msg: Message, interaction: Interaction, guildMember: GuildMember, requirement: CommandPermissionRequirement) => Promise<boolean>;
 }
 
 export class CommandPermissionRequirementSettings {
-    public allRequirements: CommandPermissionRequirement[] = [];
-    public anyRequirements: CommandPermissionRequirement[] = [];
-    public anyRequirementsByType: CommandPermissionRequirement[] = [];
+    public requirements: CommandPermissionRequirement[] = [];
+    public hasPermissionByDefault: boolean = false;
 }
 
 export interface ICommandPermissions {
     permissionRequirements: CommandPermissionRequirementSettings;
     permissionFailReplyType: CommandPermissionFeedbackType;
-    getPermissionFailReplyText(msg: Message): string;
-    setupPermissions(bot: IDiscordBot, msg: Message): void;
+    getPermissionFailReplyText(commandInputContext: CommandInputContext, msg: Message, interaction: Interaction): string;
+    setupPermissions(bot: IDiscordBot, commandInputContext: CommandInputContext, msg: Message, interaction: Interaction): void;
 }
 
 export enum CommandPermissionResultStatus {
