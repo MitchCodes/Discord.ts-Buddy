@@ -1,10 +1,10 @@
 // Models
 export { BotRestartSettings } from './models/BotRestartSettings';
 export { CommandResultStatus, ICommandResult, CommandResult, 
-        ICommand, ICommandFactory, CommandMatchingType, CommandMatchingSettings } from './models/Command';
+        ICommand, ICommandFactory, CommandMatchingType, CommandMatchingSettings, CommandInputContext } from './models/Command';
 export { CommandPermissionType, CommandPermissionFeedbackType, CommandPermissionRequirement, 
         CommandPermissionRequirementSettings, ICommandPermissions, CommandPermissionResultStatus,
-        CommandPermissionResult } from './models/CommandPermission';
+        CommandPermissionResult, CommandPermissionGrantRevokeType } from './models/CommandPermission';
 export { IDiscordBot, IAutoManagedBot, BotStatus } from './models/DiscordBot';
 export { IKeyedCollection, KeyedCollection, GuildCollection } from './models/GuildCollection';
 export { ErrorWithCode, GenericErrorCodes } from './models/Errors';
