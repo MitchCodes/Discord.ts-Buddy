@@ -1,7 +1,7 @@
 // Models
 export { BotRestartSettings } from './models/BotRestartSettings';
 export { CommandResultStatus, ICommandResult, CommandResult, 
-        ICommand, ICommandFactory, CommandMatchingType, CommandMatchingSettings, CommandInputContext } from './models/Command';
+        ICommand, ICommandFactory, CommandMatchingType, CommandMatchingSettings, CommandInputContext, CommandInputSettings } from './models/Command';
 export { CommandPermissionType, CommandPermissionFeedbackType, CommandPermissionRequirement, 
         CommandPermissionRequirementSettings, ICommandPermissions, CommandPermissionResultStatus,
         CommandPermissionResult, CommandPermissionGrantRevokeType } from './models/CommandPermission';
@@ -16,6 +16,7 @@ export { BasicDictionary } from './models/BasicDictionary';
 export { DiscordHelper } from './logic/helpers/discord.helper';
 export { ModelComparer } from './logic/helpers/modelcompare.helper';
 export { StringHelper } from './logic/helpers/string.helper';
+export { BotHelper } from './logic/helpers/bot.helper';
 
 // Bots
 export { BotManager } from './logic/botmanager.logic';
@@ -26,5 +27,5 @@ export { MessengerService } from './logic/services/messenger.service';
 export { CommandPermissionsService } from './logic/services/permissions.service';
 
 // Commands
-export { CommandParser } from './logic/command.logic';
-export { ICommandParserFactory, PrefixedCommandParserFactory, ExactCommandParserFactory, StartsWithCommandParserFactory } from './logic/factories/commandparser.factory';
+export { CommandMessageParser } from './logic/command.logic';
+export { ICommandMessageMatchFactory, PrefixedMessageMatchFactory, ExactMessageMatchFactory, StartsWithMessageMatchFactory } from './logic/factories/commandmessagematch.factory';

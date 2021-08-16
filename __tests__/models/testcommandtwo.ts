@@ -1,4 +1,4 @@
-import { ICommand, ICommandFactory, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext } from '../../src/models/Command';
+import { ICommand, ICommandFactory, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandInputSettings, CommandMatchingSettings, CommandMatchingType } from '../../src/models/Command';
 import { Message, GuildMember, Interaction } from 'discord.js';
 import { ICommandPermissions, CommandPermissionRequirementSettings, CommandPermissionFeedbackType, 
     CommandPermissionType, CommandPermissionRequirement, CommandPermissionGrantRevokeType } from '../../src/models/CommandPermission';
@@ -8,10 +8,10 @@ import { TestBot } from '../bots/testbot';
 export class TestCommandTwo implements ICommand, ICommandFactory, ICommandPermissions {
     public commandName: string = 'Ping Pong';
     public commandDescription: string = 'Simple ping pong test';
-    public commandMatchText: string = 'ping';
     public permissionRequirements: CommandPermissionRequirementSettings;
     public permissionFailReplyType: CommandPermissionFeedbackType;
     public testIsSet: boolean = false;
+    public inputSettings: CommandInputSettings;
 
     public constructor() {
         let anyTextChannelReq: CommandPermissionRequirement = new CommandPermissionRequirement();
@@ -51,8 +51,6 @@ export class TestCommandTwo implements ICommand, ICommandFactory, ICommandPermis
         anyTextForAnyReq.permissionType = CommandPermissionType.anytextchannel;
         anyTextForAnyReq.successGrantRevokeType = CommandPermissionGrantRevokeType.grant;
 
-
-
         this.permissionRequirements = new CommandPermissionRequirementSettings();
         this.permissionRequirements.requirements.push(anyTextChannelReq);
         this.permissionRequirements.requirements.push(textChannelReq);
@@ -66,6 +64,11 @@ export class TestCommandTwo implements ICommand, ICommandFactory, ICommandPermis
         //this.permissionRequirements.requirements.push(customFailReq);
 
         this.permissionFailReplyType = CommandPermissionFeedbackType.direct;
+    }
+    
+    public async setupInputSettings(bot: IDiscordBot): Promise<void> {
+        let commandMessageSettings: CommandMatchingSettings = new CommandMatchingSettings('ping', CommandMatchingType.prefixedOneWord, '!', ' ');
+        this.inputSettings = new CommandInputSettings(commandMessageSettings);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function

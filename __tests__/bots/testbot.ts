@@ -1,4 +1,5 @@
-import { MultiGuildBot, CommandParser, ICommandFactory, CommandMatchingSettings, CommandMatchingType } from '../../src/main';
+import { MultiGuildBot, CommandMatchingSettings, CommandMatchingType } from '../../src/main';
+import { ICommand, ICommandFactory } from '../../src/models/Command';
 import { TestCommand } from '../models/testcommand';
 import { TestCommandTwo } from '../models/testcommandtwo';
 
@@ -14,28 +15,18 @@ export class TestBot extends MultiGuildBot {
 
     // This overrides the base class function because it does not have any.
     // This does not need to be called directly in this bot so-long as you call 'super.setupBot()' if you override setupBot
-    public setupCommands(): CommandParser[] {
-        let returnParsers: CommandParser[] = [];
-        let availableCommands: ICommandFactory[] = [];
-
-        // set up parser matching settings
-        let commandParserSettings: CommandMatchingSettings = new CommandMatchingSettings();
-        commandParserSettings.commandPartDelimiter = ' ';
-        commandParserSettings.prefix = '!';
-        commandParserSettings.matchingType = CommandMatchingType.prefixedOneWord;
+    public setupCommands(): ICommand[] {
+        let returnCommands: ICommand[] = [];
 
         // set up commands
-        let pingPongCommand: ICommandFactory = new TestCommand();
-        let pingPongCommandTwo: ICommandFactory = new TestCommandTwo();
+        let pingPongCommand: ICommand = new TestCommand();
+        let pingPongCommandTwo: ICommand = new TestCommandTwo();
 
-        availableCommands.push(pingPongCommand);
-        //availableCommands.push(pingPongCommandTwo);
-        
-        // set up parser(s)
-        returnParsers.push(new CommandParser(commandParserSettings, availableCommands));
+        returnCommands.push(pingPongCommand);
+        //returnCommands.push(pingPongCommandTwo);
         
         this.botInfo('Commands are setup.');
 
-        return returnParsers;
+        return returnCommands;
     }
 }

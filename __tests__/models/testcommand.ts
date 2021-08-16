@@ -1,4 +1,5 @@
-import { ICommand, ICommandFactory, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext } from '../../src/models/Command';
+/* eslint-disable @typescript-eslint/no-empty-function */
+import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandInputSettings, ICommandFactory, CommandMatchingSettings, CommandMatchingType } from '../../src/models/Command';
 import { Message, GuildMember, Interaction } from 'discord.js';
 import { ICommandPermissions, CommandPermissionRequirementSettings, CommandPermissionFeedbackType, 
     CommandPermissionType, CommandPermissionRequirement, CommandPermissionGrantRevokeType } from '../../src/models/CommandPermission';
@@ -8,10 +9,10 @@ import { TestBot } from '../bots/testbot';
 export class TestCommand implements ICommand, ICommandFactory, ICommandPermissions {
     public commandName: string = 'Ping Pong';
     public commandDescription: string = 'Simple ping pong test';
-    public commandMatchText: string = 'ping';
     public permissionRequirements: CommandPermissionRequirementSettings;
     public permissionFailReplyType: CommandPermissionFeedbackType;
     public testIsSet: boolean = false;
+    public inputSettings: CommandInputSettings;
 
     public constructor() {
         let anyTextChannelReq: CommandPermissionRequirement = new CommandPermissionRequirement();
@@ -51,8 +52,6 @@ export class TestCommand implements ICommand, ICommandFactory, ICommandPermissio
         anyTextForAnyReq.permissionType = CommandPermissionType.anytextchannel;
         anyTextForAnyReq.successGrantRevokeType = CommandPermissionGrantRevokeType.grant;
 
-
-
         this.permissionRequirements = new CommandPermissionRequirementSettings();
         this.permissionRequirements.requirements.push(anyTextChannelReq);
         this.permissionRequirements.requirements.push(textChannelReq);
@@ -68,6 +67,16 @@ export class TestCommand implements ICommand, ICommandFactory, ICommandPermissio
         this.permissionFailReplyType = CommandPermissionFeedbackType.direct;
 
     }
+
+    public makeCommand(): ICommand {
+        return new TestCommand();
+    }
+    
+    public async setupInputSettings(bot: IDiscordBot): Promise<void> {
+        // set up parser matching settings
+        let commandMessageSettings: CommandMatchingSettings = new CommandMatchingSettings('ping', CommandMatchingType.prefixedOneWord, '!', ' ');
+        this.inputSettings = new CommandInputSettings(commandMessageSettings);
+    }
     
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     public setupPermissions(bot: IDiscordBot, commandInputContext: CommandInputContext, msg: Message, interaction: Interaction): void {
@@ -76,10 +85,6 @@ export class TestCommand implements ICommand, ICommandFactory, ICommandPermissio
 
     public getPermissionFailReplyText(commandInputContext: CommandInputContext, msg: Message, interaction: Interaction): string {
         return 'You do not have permission to ping pong.';
-    }
-
-    public makeCommand(): ICommand {
-        return new TestCommand();
     }
     
     public execute(bot: IDiscordBot, msg: Message): Promise<ICommandResult> {

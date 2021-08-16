@@ -8,7 +8,7 @@ import { BitFieldResolvable, Client, Guild, Intents, IntentsString, Message, Tex
 
 // tslint:disable-next-line:no-submodule-imports
 import * as Rx from 'rxjs/Rx';
-import { CommandParser } from '../command.logic';
+import { CommandMessageParser } from '../command.logic';
 import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext } from '../../models/Command';
 import { CommandPermissionsService } from '../services/permissions.service';
 import { MessengerService } from '../services/messenger.service';
@@ -29,11 +29,11 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
     public onBotJoinGuild: Rx.Subject<Guild> = new Rx.Subject<Guild>();
     public onBotLeaveGuild: Rx.Subject<Guild> = new Rx.Subject<Guild>();
     public logger: Logger = null;
+    public botClient: Client = null;
+    public commands: ICommand[] = [];
     protected conf: Provider = null;
     protected botToken: string = '';
-    protected botClient: Client = null;
     protected status: BotStatus = BotStatus.inactive;
-    protected commandParsers: CommandParser[] = [];
 
     constructor(passedBotName: string, passedBotToken: string, passedLogger: Logger, 
                 passedConf: Provider) {
@@ -84,14 +84,14 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
     public setupBot(): void {
 
         // Default command parser setup
-        let commandParsers: CommandParser[] = this.setupCommands();
-        for (let parser of commandParsers) {
-            this.commandParsers.push(parser);
+        let commands: ICommand[] = this.setupCommands();
+        for (let command of commands) {
+            command.setupInputSettings(this);
+            this.commands.push(command);
         }
-
     }
 
-    public setupCommands(): CommandParser[] {
+    public setupCommands(): ICommand[] {
 
         return [];
     } 
@@ -105,8 +105,8 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         this.onBotStatusChange.next(status);
     }
 
-    public addCommandParser(parser: CommandParser): void {
-        this.commandParsers.push(parser);
+    public addCommand(command: ICommand): void {
+        this.commands.push(command);
     }
 
     public restartBotDueToError(err: string): void {
@@ -122,17 +122,20 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
     }
 
     protected handleMessage(msg: Message): void {
-        for (let commandParser of this.commandParsers) {
-            let command: ICommand = commandParser.parseCommand(msg.content);
-            if (command !== null) {
-                try {
-                    this.handleCommand(command, msg);
-                } catch (cmdErr) {
-                    if (this.isICommandResultError(cmdErr)) {
-                        this.botError('Error processing command ' + command.commandName + ': ' 
-                                    + cmdErr.error + ' - Message: ' + cmdErr.message);
-                    } else {
-                        this.botError('Error handling message by ' + msg.member.nickname + ': ' + cmdErr);
+        if (this.commands) {
+            let commandMessageParser: CommandMessageParser = new CommandMessageParser(this.commands);
+            let commands: ICommand[] = commandMessageParser.getCommandsForMessageInput(msg.content);
+            if (commands) {
+                for (let command of commands) {
+                    if (command) {
+                        this.handleCommand(command, msg).catch((cmdErr: any) => {
+                            if (this.isICommandResultError(cmdErr)) {
+                                this.botError('Error processing command ' + command.commandName + ': ' 
+                                            + cmdErr.error + ' - Message: ' + cmdErr.message);
+                            } else {
+                                this.botError('Error handling message by ' + msg.member.nickname + ': ' + cmdErr);
+                            }
+                        });
                     }
                 }
             }

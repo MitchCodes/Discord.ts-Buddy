@@ -1,60 +1,66 @@
-import { ICommandFactory, ICommand, CommandMatchingSettings, CommandMatchingType } from '../models/Command';
+/* eslint-disable @typescript-eslint/ban-types */
+import { ICommand, CommandMatchingType, ICommandFactory } from '../models/Command';
+import { BotHelper } from './helpers/bot.helper';
 
-export class CommandParser {
-    private availableCommands: ICommandFactory[];
-    private commandMatchingSettings: CommandMatchingSettings;
+export class CommandMessageParser {
+    private availableCommands: ICommand[];
+    private botHelper: BotHelper;
 
-    public constructor(commandMatchingSettings: CommandMatchingSettings, passedAvailComms: ICommandFactory[]) {
-        this.availableCommands = passedAvailComms;
-        this.commandMatchingSettings = commandMatchingSettings;
+    public constructor(commands: ICommand[]) {
+        this.availableCommands = commands;
+        this.botHelper = new BotHelper();
     }
 
-    public parseCommand(inputCommand: string): ICommand {
-        let args: string[] = inputCommand.split(this.commandMatchingSettings.commandPartDelimiter);
+    public getCommandsForMessageInput(inputCommand: string): ICommand[] {
+        let commands: ICommandFactory[] = this.findRequestedCommands(inputCommand);
 
-        let command: ICommandFactory = this.findRequestedCommand(this.commandMatchingSettings, inputCommand, args);
-
-        if (command !== null) {
-            return command.makeCommand(args);
+        let newCommands: ICommand[] = [];
+        if (commands !== null) {
+            for (let command of commands) {
+                let newCommand: ICommand = command.makeCommand();
+                newCommands.push(newCommand);
+            }
         }
 
-        return null;        
+        return newCommands;        
     }
 
-    public addAvailableCommand(passedAvailComm: ICommandFactory) {
+    public addAvailableCommand(passedAvailComm: ICommand): void {
         this.availableCommands.push(passedAvailComm);
     }
 
-    private findRequestedCommand(matchingSettings: CommandMatchingSettings, rawInputCommand: string, args: string[]): ICommandFactory {
-        let commandName: string = args[0];
+    private findRequestedCommands(rawInputCommand: string): ICommandFactory[] {
+        let commands: ICommandFactory[] = [];
 
-        switch (matchingSettings.matchingType) {
-            case CommandMatchingType.exactMatch:
-                for (let comm of this.availableCommands) {
-                    if (comm.commandMatchText === rawInputCommand) {
-                        return comm;
-                    }
+        for (let comm of this.availableCommands) {
+            if (this.botHelper.hasCommandFactory(comm)) {
+                if (comm.inputSettings && comm.inputSettings.messageMatchingSettings) {
+                    let args: string[] = rawInputCommand.split(comm.inputSettings.messageMatchingSettings.commandPartDelimiter);
+                    let commandName: string = args[0];
+    
+                    let prefixedCommandName = comm.inputSettings.messageMatchingSettings.prefix + comm.inputSettings.messageMatchingSettings.commandMatchText;
+    
+                    switch (comm.inputSettings.messageMatchingSettings.matchingType) {
+                        case CommandMatchingType.exactMatch:
+                            if (comm.inputSettings.messageMatchingSettings.commandMatchText === rawInputCommand) {
+                                commands.push(comm);
+                            }
+                            break;
+                        case CommandMatchingType.prefixedOneWord:
+                            if (prefixedCommandName === commandName) {
+                                commands.push(comm);
+                            }
+                            break;
+                        case CommandMatchingType.startsWith:
+                            if (rawInputCommand.startsWith(comm.inputSettings.messageMatchingSettings.prefix + comm.inputSettings.messageMatchingSettings.commandMatchText)) {
+                                commands.push(comm);
+                            }
+                            break;
+                    }  
                 }
-                break;
-            case CommandMatchingType.prefixedOneWord:
-                for (let comm of this.availableCommands) {
-                    let prefixedCommandName = matchingSettings.prefix + comm.commandMatchText;
-                    if (prefixedCommandName === commandName) {
-                        return comm;
-                    }
-                }
-                break;
-            case CommandMatchingType.startsWith:
-                for (let comm of this.availableCommands) {
-                    if (rawInputCommand.startsWith(matchingSettings.prefix + comm.commandMatchText)) {
-                        return comm;
-                    }
-                }
-                break;
-            default:
-                return null;
-        }        
-
-        return null;
+            }
+        }
+        
+        return commands;
     }
 }

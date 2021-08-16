@@ -50,13 +50,13 @@ export class CommandResult implements ICommandResult {
 export interface ICommand {
     commandName: string;
     commandDescription: string;
+    inputSettings: CommandInputSettings;
+    setupInputSettings(bot: IDiscordBot): Promise<void>;
     execute(bot: IDiscordBot, msg: Message): Promise<ICommandResult>;
 }
 
 export interface ICommandFactory {
-    commandMatchText: string;
-
-    makeCommand(args: string[]): ICommand;
+    makeCommand(): ICommand;
 }
 
 export enum CommandMatchingType {
@@ -65,8 +65,24 @@ export enum CommandMatchingType {
     startsWith = 2,
 }
 
+export class CommandInputSettings {
+    public messageMatchingSettings: CommandMatchingSettings;
+
+    public constructor(messageMatchSettings: CommandMatchingSettings = null) {
+        this.messageMatchingSettings = messageMatchSettings;
+    }
+}
+
 export class CommandMatchingSettings {
     public matchingType: CommandMatchingType = CommandMatchingType.prefixedOneWord;
+    public commandMatchText: string;
     public commandPartDelimiter: string = ' ';
     public prefix: string = '!';
+
+    public constructor(matchText: string = '', matchingType: CommandMatchingType = CommandMatchingType.prefixedOneWord, prefix: string = '', partDelimiter: string = '!') {
+        this.commandMatchText = matchText;
+        this.matchingType = matchingType;
+        this.commandPartDelimiter = partDelimiter;
+        this.prefix = prefix;
+    }
 }

@@ -1,9 +1,8 @@
-import { Logger, createLogger, transports } from 'winston';
+import { createLogger, transports } from 'winston';
 import * as nconf from 'nconf';
-import { CommandParser } from '../src/logic/command.logic';
+import { CommandMessageParser } from '../src/logic/command.logic';
 import { TestCommand } from './models/testcommand';
-import { ICommand, ICommandFactory, ICommandResult, CommandResult, CommandResultStatus, 
-          CommandMatchingSettings, CommandMatchingType } from '../src/models/Command';
+import { ICommand, CommandMatchingSettings, CommandMatchingType } from '../src/models/Command';
 import { StringHelper } from '../src/logic/helpers/string.helper';
 
 describe('maincontroller tests', () => {
@@ -29,7 +28,7 @@ describe('maincontroller tests', () => {
 
   // tslint:disable-next-line:mocha-unneeded-done
   it('test command parser prefixed', (done: any) => {
-    let availableCommands: ICommandFactory[] = [];
+    let availableCommands: ICommand[] = [];
 
     // set up parser matching settings
     let commandParserSettings: CommandMatchingSettings = new CommandMatchingSettings();
@@ -38,87 +37,23 @@ describe('maincontroller tests', () => {
     commandParserSettings.matchingType = CommandMatchingType.prefixedOneWord;
 
     // set up commands
-    let pingPongTestCommand: ICommandFactory = new TestCommand();
+    let pingPongTestCommand: ICommand = new TestCommand();
     availableCommands.push(pingPongTestCommand);
     
     // set up parser
-    let parser: CommandParser = new CommandParser(commandParserSettings, availableCommands);
+    let parser: CommandMessageParser = new CommandMessageParser(availableCommands);
 
-    let gotCommand: ICommand = parser.parseCommand('!ping pong');
-    let commandCasted: TestCommand = <TestCommand>gotCommand;
+    let gotCommands: ICommand[] = parser.getCommandsForMessageInput('!ping pong');
+    let commandCasted: TestCommand = <TestCommand>gotCommands[0];
 
-    expect(gotCommand).not.toBeUndefined();
-    expect(gotCommand).not.toBeNull();
+    expect(commandCasted).not.toBeUndefined();
+    expect(commandCasted).not.toBeNull();
 
-    expect(parser.parseCommand('^ping pong')).toBeNull();
+    expect(parser.getCommandsForMessageInput('^ping pong').length).toBe(0);
 
     expect(commandCasted.testIsSet).toBeFalsy();
-    gotCommand.execute(null, null);
+    commandCasted.execute(null, null);
     expect(commandCasted.testIsSet).toBeTruthy();
-    
-    done();
-  });
-
-  // tslint:disable-next-line:mocha-unneeded-done
-  it('test command parser exact match', (done: any) => {
-    let availableCommands: ICommandFactory[] = [];
-
-    // set up parser matching settings
-    let commandParserSettings: CommandMatchingSettings = new CommandMatchingSettings();
-    commandParserSettings.matchingType = CommandMatchingType.exactMatch;
-
-    // set up commands
-    let pingPongTestCommand: ICommandFactory = new TestCommand();
-    availableCommands.push(pingPongTestCommand);
-    
-    // set up parser
-    let parser: CommandParser = new CommandParser(commandParserSettings, availableCommands);
-
-    let gotCommand: ICommand = parser.parseCommand('ping');
-    let commandCasted: TestCommand = <TestCommand>gotCommand;
-
-    expect(gotCommand).not.toBeUndefined();
-    expect(gotCommand).not.toBeNull();
-
-    expect(parser.parseCommand('!ping')).toBeNull();
-
-    expect(commandCasted.testIsSet).toBeFalsy();
-    gotCommand.execute(null, null);
-    expect(commandCasted.testIsSet).toBeFalsy();
-    
-    done();
-  });
-
-  // tslint:disable-next-line:mocha-unneeded-done
-  it('test command parser add available after creation', (done: any) => {
-    let availableCommands: ICommandFactory[] = [];
-
-    // set up parser matching settings
-    let commandParserSettings: CommandMatchingSettings = new CommandMatchingSettings();
-    commandParserSettings.matchingType = CommandMatchingType.exactMatch;
-
-    // set up commands
-    let pingPongTestCommand: ICommandFactory = new TestCommand();
-    
-    // set up parser
-    let parser: CommandParser = new CommandParser(commandParserSettings, availableCommands);
-
-    let gotCommand: ICommand = parser.parseCommand('ping');
-
-    expect(gotCommand).toBeNull();
-
-    expect(parser.parseCommand('!ping')).toBeNull();
-
-    parser.addAvailableCommand(pingPongTestCommand);
-
-    gotCommand = parser.parseCommand('ping');
-    let commandCasted: TestCommand = <TestCommand>gotCommand;
-
-    expect(gotCommand).not.toBeNull();
-
-    expect(commandCasted.testIsSet).toBeFalsy();
-    gotCommand.execute(null, null);
-    expect(commandCasted.testIsSet).toBeFalsy();
     
     done();
   });
