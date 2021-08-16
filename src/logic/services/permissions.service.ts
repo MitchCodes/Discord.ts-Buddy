@@ -98,12 +98,12 @@ export class CommandPermissionsService {
                 }
                 break;
             case CommandPermissionType.textchannel:
-                if (this.msgIsInTextChannelById(msg, requirement.identifier)) {
+                if (this.msgIsInTextChannelById(inputContext, msg, interaction, requirement.identifier)) {
                     return true;
                 }
                 break;
             case CommandPermissionType.anytextchannel:
-                if (this.msgIsInTextChannel(msg)) {
+                if (this.msgIsInTextChannel(inputContext, msg, interaction)) {
                     return true;
                 }
                 break;
@@ -169,16 +169,40 @@ export class CommandPermissionsService {
         return helper.doesGuildMemberMatchId(guildMember, userIdentifier);
     }
 
-    private msgIsInTextChannelById(msg: Message, channelIdentifier: string): boolean {
+    private msgIsInTextChannelById(inputContext: CommandInputContext, msg: Message, interaction: Interaction, channelIdentifier: string): boolean {
         let helper: DiscordHelper = new DiscordHelper();
 
-        return helper.msgIsInTextChannelById(msg, channelIdentifier);
+        if (inputContext === CommandInputContext.message) {
+            return helper.msgIsInTextChannelById(msg, channelIdentifier);
+        } else if (inputContext === CommandInputContext.interaction) {
+            if (interaction.channel && interaction.channel.type === 'GUILD_TEXT') {
+                let identifierLowered: string = channelIdentifier.toLowerCase();
+                
+                if (interaction.channel.name.toLowerCase() === identifierLowered) {
+                    return true;
+                }
+                
+                if (interaction.channel.id === channelIdentifier) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
-    private msgIsInTextChannel(msg: Message): boolean {
+    private msgIsInTextChannel(inputContext: CommandInputContext, msg: Message, interaction: Interaction): boolean {
         let helper: DiscordHelper = new DiscordHelper();
 
-        return helper.msgIsInTextChannel(msg);
+        if (inputContext === CommandInputContext.message) {
+            return helper.msgIsInTextChannel(msg);
+        } else if (inputContext === CommandInputContext.interaction) {
+            if (interaction.channel && interaction.channel.type === 'GUILD_TEXT') {
+                return true;
+            }
+        }
+
+        return false;
     }    
 
     private isNumeric(num){
