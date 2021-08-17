@@ -45,7 +45,7 @@ export class EchoCommand implements ICommand, ICommandFactory, ICommandPermissio
         userInteraction.contextMenuMainTypeSettings.name = 'Echo Me Daddy';
         commandInteractionSettings.interactions.push(userInteraction);
 
-        let messageInteraction: CommandInteraction = new CommandInteraction(CommandInteractionRegistrationContext.global, null);
+        let messageInteraction: CommandInteraction = new CommandInteraction(CommandInteractionRegistrationContext.allGuilds, null);
         messageInteraction.mainType = CommandInteractionMainType.contextMessage;
         messageInteraction.contextMenuMainTypeSettings = new CommandInteractionContextTypeSettings();
         messageInteraction.contextMenuMainTypeSettings.name = 'Echo Message';
