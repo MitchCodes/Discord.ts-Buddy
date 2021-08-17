@@ -1,4 +1,3 @@
-import { createLogger, transports } from 'winston';
 import * as nconf from 'nconf';
 import { CommandMessageParser } from '../src/logic/command.logic';
 import { TestCommand } from './models/testcommand';
@@ -16,13 +15,6 @@ describe('maincontroller tests', () => {
     nconf.file({ file: '../config.common.json' });
     nconf.defaults({
       botTokens: [],
-    });
-
-    let logger = createLogger({
-      level: 'debug',
-      transports: [
-        new transports.Console(),
-      ],
     });
   });
 
@@ -44,7 +36,7 @@ describe('maincontroller tests', () => {
     let parser: CommandMessageParser = new CommandMessageParser(availableCommands);
 
     let gotCommands: ICommand[] = parser.getCommandsForMessageInput('!ping pong');
-    let commandCasted: TestCommand = <TestCommand>gotCommands[0];
+    let commandCasted: TestCommand = <TestCommand><unknown>gotCommands[0];
 
     expect(commandCasted).not.toBeUndefined();
     expect(commandCasted).not.toBeNull();

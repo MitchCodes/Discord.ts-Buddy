@@ -1,17 +1,19 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { Logger } from 'winston';
 import { Provider } from 'nconf';
 import { IDiscordBot, BotStatus, IAutoManagedBot } from '../../models/DiscordBot';
 import { ICommandPermissions, CommandPermissionFeedbackType, CommandPermissionResult, 
         CommandPermissionResultStatus } from '../../models/CommandPermission';
-import { BitFieldResolvable, Client, Guild, Intents, IntentsString, Message, TextChannel } from 'discord.js';
+import { BitFieldResolvable, Client, Guild, Intents, IntentsString, Interaction, Message, TextChannel } from 'discord.js';
 
 // tslint:disable-next-line:no-submodule-imports
 import * as Rx from 'rxjs/Rx';
 import { CommandMessageParser } from '../command.logic';
-import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext } from '../../models/Command';
+import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandInput } from '../../models/Command';
 import { CommandPermissionsService } from '../services/permissions.service';
 import { MessengerService } from '../services/messenger.service';
+import { ILogger } from 'tsdatautils-core';
+import { InteractionRegistryService } from '../services/interaction-registry.service';
 
 export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
     public guilds: Guild[] = [];
@@ -24,18 +26,19 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
     public onBotStatusChange: Rx.Subject<BotStatus> = new Rx.Subject<BotStatus>();
     public onBotRequiresRestart: Rx.Subject<string> = new Rx.Subject<string>();
     public onBotMessage: Rx.Subject<Message> = new Rx.Subject<Message>();
+    public onBotInteraction: Rx.Subject<Interaction> = new Rx.Subject<Interaction>();
     public onBotError: Rx.Subject<Error> = new Rx.Subject<Error>();
     public onBotWarning: Rx.Subject<string> = new Rx.Subject<string>();
     public onBotJoinGuild: Rx.Subject<Guild> = new Rx.Subject<Guild>();
     public onBotLeaveGuild: Rx.Subject<Guild> = new Rx.Subject<Guild>();
-    public logger: Logger = null;
+    public logger: ILogger = null;
     public botClient: Client = null;
     public commands: ICommand[] = [];
     protected conf: Provider = null;
     protected botToken: string = '';
     protected status: BotStatus = BotStatus.inactive;
 
-    constructor(passedBotName: string, passedBotToken: string, passedLogger: Logger, 
+    constructor(passedBotName: string, passedBotToken: string, passedLogger: ILogger, 
                 passedConf: Provider) {
         this.name = passedBotName;
         this.botToken = passedBotToken;
@@ -87,6 +90,9 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         let commands: ICommand[] = this.setupCommands();
         for (let command of commands) {
             command.setupInputSettings(this);
+            if ((<any>command).setupPermissions) {
+                (<ICommandPermissions><unknown>command).setupPermissions(this, CommandInputContext.none, null, null);
+            }
             this.commands.push(command);
         }
     }
@@ -113,6 +119,11 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         this.onBotRequiresRestart.next(err);
     }
 
+    public async registerInteractions(): Promise<void> {
+        let interactionRegistryService: InteractionRegistryService = new InteractionRegistryService(this.logger);
+        await interactionRegistryService.registerInteractions(this.botClient, this.botClient.user.id, this.botToken, [...this.botClient.guilds.cache.values()], this.commands);
+    }
+
     // tslint:disable-next-line:no-empty
     protected setupCommandPreExecute(command: ICommand): void {
     }
@@ -128,7 +139,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
             if (commands) {
                 for (let command of commands) {
                     if (command) {
-                        this.handleCommand(command, msg).catch((cmdErr: any) => {
+                        this.handleCommandMessage(command, msg).catch((cmdErr: any) => {
                             if (this.isICommandResultError(cmdErr)) {
                                 this.botError('Error processing command ' + command.commandName + ': ' 
                                             + cmdErr.error + ' - Message: ' + cmdErr.message);
@@ -142,7 +153,10 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         }
     }
 
-    protected async handleCommand(command: ICommand, msg: Message): Promise<ICommandResult> {
+    protected handleInteraction(interaction: Interaction): void {
+    }
+
+    protected async handleCommandMessage(command: ICommand, msg: Message): Promise<ICommandResult> {
         // handle permissions
         let commandAny: any = <any>command;
 
@@ -171,7 +185,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
             // they have permission, run the command
             this.setupCommandPreExecute(command);
 
-            let executeResult: ICommandResult = await command.execute(this, msg);
+            let executeResult: ICommandResult = await command.execute(this, new CommandInput(CommandInputContext.message, msg, null));
 
             if (executeResult.status === CommandResultStatus.error) {
                 throw executeResult;
@@ -252,6 +266,10 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         this.botClient.on('guildDelete', (guild: Guild) => {
             this.onBotLeaveGuild.next(guild);
         });
+
+        this.botClient.on('interactionCreate', (interaction: Interaction) => {
+            this.onBotInteraction.next(interaction);
+        });
     }
 
     private subscribeToSubjects(): void {
@@ -294,6 +312,10 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
 
         this.onBotMessage.subscribe((message: Message) => {
             this.handleMessage(message);
+        });
+
+        this.onBotInteraction.subscribe((interaction: Interaction) => {
+            this.handleInteraction(interaction);
         });
     }
 }

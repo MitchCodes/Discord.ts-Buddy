@@ -3,6 +3,7 @@ import * as nconf from 'nconf';
 import { Guild, VoiceChannel, TextChannel } from 'discord.js';
 import { MultiGuildBot } from '../../src/logic/bots/multi-guild-bot';
 import { TestBot } from './testbot';
+import { WinstonLogger } from 'tsdatautils-core';
 
 describe('multi-guild-bot tests', () => {
     let logger: Logger;
@@ -47,9 +48,9 @@ describe('multi-guild-bot tests', () => {
             ],
           });
         
-        if (mainBotToken&& secondBotToken) {
-            mainBotClient = new TestBot('Main Bot', mainBotToken, logger, nconf);
-            secondBotClient = new MultiGuildBot('Second Bot', secondBotToken, logger, nconf);
+        if (mainBotToken && secondBotToken) {
+            mainBotClient = new TestBot('Main Bot', mainBotToken, new WinstonLogger(logger), nconf);
+            secondBotClient = new MultiGuildBot('Second Bot', secondBotToken, new WinstonLogger(logger), nconf);
 
             logger.info('Main Token: ' + mainBotToken);
 
@@ -157,5 +158,16 @@ describe('multi-guild-bot tests', () => {
 
             finish();
         }, 1000);
+    });
+
+    test('register interactions', async () => {
+        await mainBotClient.registerInteractions();
+        return;
+    });
+
+    test('wait for debugging', (finish) => {
+        setTimeout(() => {
+            finish();
+        }, 120000);
     });
 });

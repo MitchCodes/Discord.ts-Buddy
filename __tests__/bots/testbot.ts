@@ -1,6 +1,7 @@
 import { MultiGuildBot, CommandMatchingSettings, CommandMatchingType } from '../../src/main';
 import { ICommand, ICommandFactory } from '../../src/models/Command';
 import { TestCommand } from '../models/testcommand';
+import { EchoCommand } from '../models/testcommandthree';
 import { TestCommandTwo } from '../models/testcommandtwo';
 
 export class TestBot extends MultiGuildBot {
@@ -20,10 +21,10 @@ export class TestBot extends MultiGuildBot {
 
         // set up commands
         let pingPongCommand: ICommand = new TestCommand();
-        let pingPongCommandTwo: ICommand = new TestCommandTwo();
+        let echoCommand: ICommand = new EchoCommand();
 
         returnCommands.push(pingPongCommand);
-        //returnCommands.push(pingPongCommandTwo);
+        returnCommands.push(echoCommand);
         
         this.botInfo('Commands are setup.');
 

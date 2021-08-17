@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandInputSettings, ICommandFactory, CommandMatchingSettings, CommandMatchingType } from '../../src/models/Command';
+import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandInputSettings, ICommandFactory, CommandMatchingSettings, CommandMatchingType, CommandInput } from '../../src/models/Command';
 import { Message, GuildMember, Interaction } from 'discord.js';
 import { ICommandPermissions, CommandPermissionRequirementSettings, CommandPermissionFeedbackType, 
     CommandPermissionType, CommandPermissionRequirement, CommandPermissionGrantRevokeType } from '../../src/models/CommandPermission';
@@ -75,7 +75,7 @@ export class TestCommand implements ICommand, ICommandFactory, ICommandPermissio
     public async setupInputSettings(bot: IDiscordBot): Promise<void> {
         // set up parser matching settings
         let commandMessageSettings: CommandMatchingSettings = new CommandMatchingSettings('ping', CommandMatchingType.prefixedOneWord, '!', ' ');
-        this.inputSettings = new CommandInputSettings(commandMessageSettings);
+        this.inputSettings = new CommandInputSettings(commandMessageSettings, null);
     }
     
     // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -87,13 +87,13 @@ export class TestCommand implements ICommand, ICommandFactory, ICommandPermissio
         return 'You do not have permission to ping pong.';
     }
     
-    public execute(bot: IDiscordBot, msg: Message): Promise<ICommandResult> {
+    public execute(bot: IDiscordBot, input: CommandInput): Promise<ICommandResult> {
         return new Promise<ICommandResult>((resolve : (val: ICommandResult) => void) => {
             let result: CommandResult = new CommandResult();
 
-            if (msg.content === '!ping') {
+            if (input.msg.content === '!ping') {
                 this.testIsSet = true;
-                msg.channel.send('pong');
+                input.msg.channel.send('pong');
             }
 
             let botCasted: TestBot = <TestBot>bot;
