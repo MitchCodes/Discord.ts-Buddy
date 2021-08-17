@@ -89,7 +89,15 @@ export class EchoCommand implements ICommand, ICommandFactory, ICommandPermissio
         return new Promise<ICommandResult>((resolve : (val: ICommandResult) => void) => {
             let result: CommandResult = new CommandResult();
 
-            input.msg.channel.send('boop');
+            if (input.inputContext === CommandInputContext.message) {
+                input.msg.channel.send('boop');
+            } else {
+                if (input.interaction.isCommand()) {
+                    input.interaction.reply('boop');
+                } else if (input.interaction.isContextMenu()) {
+                    input.interaction.reply('boop');
+                }
+            }            
 
             result.status = CommandResultStatus.success;
             resolve(result);

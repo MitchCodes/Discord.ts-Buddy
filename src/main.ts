@@ -1,14 +1,14 @@
 // Models
 export { BotRestartSettings } from './models/BotRestartSettings';
 export { CommandResultStatus, ICommandResult, CommandResult, 
-        ICommand, ICommandFactory, CommandMatchingType, CommandMatchingSettings, CommandInputContext, CommandInputSettings } from './models/Command';
+        ICommand, ICommandFactory, CommandMatchingType, CommandMatchingSettings, CommandInputContext, CommandInputSettings, CommandInput, 
+        CommandInteraction, CommandInteractionContextTypeSettings, CommandInteractionMainType, CommandInteractionRegistrationContext, CommandInteractionSettings } from './models/Command';
 export { CommandPermissionType, CommandPermissionFeedbackType, CommandPermissionRequirement, 
         CommandPermissionRequirementSettings, ICommandPermissions, CommandPermissionResultStatus,
         CommandPermissionResult, CommandPermissionGrantRevokeType } from './models/CommandPermission';
 export { IDiscordBot, IAutoManagedBot, BotStatus } from './models/DiscordBot';
 export { IKeyedCollection, KeyedCollection, GuildCollection } from './models/GuildCollection';
 export { ErrorWithCode, GenericErrorCodes } from './models/Errors';
-export { VoiceErrorCodes } from './models/Voice';
 
 export { BasicDictionary } from './models/BasicDictionary';
 
@@ -25,6 +25,7 @@ export { MultiGuildBot } from './logic/bots/multi-guild-bot';
 // Services
 export { MessengerService } from './logic/services/messenger.service';
 export { CommandPermissionsService } from './logic/services/permissions.service';
+export { InteractionRegistrationCommandContext } from './logic/services/interaction-registry.service';
 
 // Commands
 export { CommandMessageParser } from './logic/command.logic';

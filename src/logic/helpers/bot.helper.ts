@@ -4,7 +4,7 @@ import { ICommandPermissions } from "../../models/CommandPermission";
 
 export class BotHelper {
     public hasCommandFactory(command: Object): command is ICommandFactory {
-        return 'createCommand' in command;
+        return 'makeCommand' in command;
     }
 
     public hasCommandPermissions(command: Object): command is ICommandPermissions {
