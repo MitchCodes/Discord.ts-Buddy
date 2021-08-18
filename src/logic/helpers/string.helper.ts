@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export class StringHelper {
     public splitStringIfLengthExceeds(text: string, maxLength: number): string[] {
         let returnSplitString: string[] = [];
@@ -11,5 +12,18 @@ export class StringHelper {
         }
 
         return returnSplitString;
+    }
+
+    public splitSpacesWithQuotes(input: string): string[] {
+        return input.match(/\\?.|^$/g).reduce((p, c) => {
+            if(c === '"'){
+                (<any>p).quote ^= 1;
+            }else if(!(<any>p).quote && c === ' '){
+                p.a.push('');
+            }else{
+                p.a[p.a.length-1] += c.replace(/\\(.)/,"$1");
+            }
+            return  p;
+        }, {a: ['']}).a;
     }
 }

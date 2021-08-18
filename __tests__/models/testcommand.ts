@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandInputSettings, ICommandFactory, CommandMatchingSettings, CommandMatchingType, CommandInput } from '../../src/models/Command';
+import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandInputSettings, ICommandFactory, CommandMatchingSettings, CommandMatchingType, CommandUserInput } from '../../src/models/Command';
 import { Message, GuildMember, Interaction } from 'discord.js';
 import { ICommandPermissions, CommandPermissionRequirementSettings, CommandPermissionFeedbackType, 
     CommandPermissionType, CommandPermissionRequirement, CommandPermissionGrantRevokeType } from '../../src/models/CommandPermission';
@@ -87,7 +87,7 @@ export class TestCommand implements ICommand, ICommandFactory, ICommandPermissio
         return 'You do not have permission to ping pong.';
     }
     
-    public execute(bot: IDiscordBot, input: CommandInput): Promise<ICommandResult> {
+    public execute(bot: IDiscordBot, input: CommandUserInput): Promise<ICommandResult> {
         return new Promise<ICommandResult>((resolve : (val: ICommandResult) => void) => {
             let result: CommandResult = new CommandResult();
 

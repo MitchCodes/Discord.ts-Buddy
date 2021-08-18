@@ -55,7 +55,7 @@ export interface ICommand {
     commandDescription: string;
     inputSettings: CommandInputSettings;
     setupInputSettings(bot: IDiscordBot): Promise<void>;
-    execute(bot: IDiscordBot, input: CommandInput): Promise<ICommandResult>;
+    execute(bot: IDiscordBot, input: CommandUserInput): Promise<ICommandResult>;
 }
 
 export interface ICommandFactory {
@@ -68,7 +68,7 @@ export enum CommandMatchingType {
     startsWith = 2,
 }
 
-export class CommandInput {
+export class CommandUserInput {
     public inputContext: CommandInputContext;
     public msg: Message;
     public interaction: Interaction;
@@ -84,7 +84,7 @@ export class CommandInputSettings {
     public messageMatchingSettings: CommandMatchingSettings;
     public interactionSettings: CommandInteractionSettings;
 
-    public constructor(messageMatchSettings: CommandMatchingSettings = null, interactionSettings: CommandInteractionSettings) {
+    public constructor(messageMatchSettings: CommandMatchingSettings = null, interactionSettings: CommandInteractionSettings = null) {
         this.messageMatchingSettings = messageMatchSettings;
         this.interactionSettings = interactionSettings;
     }

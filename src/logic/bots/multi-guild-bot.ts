@@ -9,7 +9,7 @@ import { BitFieldResolvable, Client, Guild, Intents, IntentsString, Interaction,
 // tslint:disable-next-line:no-submodule-imports
 import * as Rx from 'rxjs/Rx';
 import { CommandInteractionParser, CommandMessageParser } from '../command.logic';
-import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandInput } from '../../models/Command';
+import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandUserInput } from '../../models/Command';
 import { CommandPermissionsService } from '../services/permissions.service';
 import { MessengerService } from '../services/messenger.service';
 import { ILogger } from 'tsdatautils-core';
@@ -122,6 +122,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
 
     public async registerInteractions(): Promise<void> {
         let interactionRegistryService: InteractionRegistryService = new InteractionRegistryService(this.logger);
+        // TODO: Handle registering identical interactions over and over if everything is the same. Don't allow it.
         await interactionRegistryService.registerInteractions(this.botClient, this.botClient.user.id, this.botToken, [...this.botClient.guilds.cache.values()], this.commands);
     }
 
@@ -183,7 +184,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
             // they have permission, run the command
             this.setupCommandPreExecute(command);
 
-            let executeResult: ICommandResult = await command.execute(this, new CommandInput(CommandInputContext.message, msg, null));
+            let executeResult: ICommandResult = await command.execute(this, new CommandUserInput(CommandInputContext.message, msg, null));
 
             if (executeResult.status === CommandResultStatus.error) {
                 throw executeResult;
@@ -203,7 +204,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
             // they have permission, run the command
             this.setupCommandPreExecute(command);
 
-            let executeResult: ICommandResult = await command.execute(this, new CommandInput(CommandInputContext.interaction, null, interaction));
+            let executeResult: ICommandResult = await command.execute(this, new CommandUserInput(CommandInputContext.interaction, null, interaction));
 
             if (executeResult.status === CommandResultStatus.error) {
                 throw executeResult;
@@ -231,15 +232,15 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
                 permissionCommandResult.replyHandled = true;
                 
                 this.botInfo('User ' + interaction.member.user.username + ' tried to run command ' + command.commandName + ' and lacked permission.');
-                this.handleLackPermissionReply(commandPermissions, new CommandInput(inputContext, msg, interaction));
-                this.handleLackPermissionDeleteMessage(permissionResult, new CommandInput(inputContext, msg, interaction));                
+                this.handleLackPermissionReply(commandPermissions, new CommandUserInput(inputContext, msg, interaction));
+                this.handleLackPermissionDeleteMessage(permissionResult, new CommandUserInput(inputContext, msg, interaction));                
             }
         }
 
         return permissionCommandResult;
     }
 
-    protected handleLackPermissionReply(commandPermissions: ICommandPermissions, input: CommandInput): void {
+    protected handleLackPermissionReply(commandPermissions: ICommandPermissions, input: CommandUserInput): void {
         let messengerService: MessengerService = new MessengerService();
         let replyMessage: string = commandPermissions.getPermissionFailReplyText(input.inputContext, input.msg, input.interaction);
 
@@ -266,7 +267,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         
     }
 
-    protected handleLackPermissionDeleteMessage(permissionResult: CommandPermissionResult, input: CommandInput): void {
+    protected handleLackPermissionDeleteMessage(permissionResult: CommandPermissionResult, input: CommandUserInput): void {
         if (input.inputContext === CommandInputContext.message) {
             let msg: Message = input.msg;
             for (let failedRequirement of permissionResult.failedCommandRequirements) {

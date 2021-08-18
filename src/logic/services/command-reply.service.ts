@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { InteractionReplyOptions } from "discord.js";
-import { CommandInput, CommandInputContext } from "../../models/Command";
+import { CommandUserInput, CommandInputContext } from "../../models/Command";
 import { CommandReplyOptions } from "../../models/CommandReply";
 
 export class CommandReplyService {
-    public async reply(input: CommandInput, options: CommandReplyOptions): Promise<void> {
+    public async reply(input: CommandUserInput, options: CommandReplyOptions): Promise<void> {
         if (!input) {
             return;
         }
@@ -81,7 +81,7 @@ export class CommandReplyService {
         }
     }
 
-    public async deferReply(input: CommandInput, ephemeral: boolean = false): Promise<void> {
+    public async deferReply(input: CommandUserInput, ephemeral: boolean = false): Promise<void> {
         if (input.inputContext === CommandInputContext.interaction) {
             let interactionAny: any = <any>input.interaction;
             if (interactionAny.deferReply) {
@@ -92,14 +92,14 @@ export class CommandReplyService {
         }
     }
 
-    public async replyAfterDefer(input: CommandInput, options: CommandReplyOptions): Promise<void> {
+    public async replyAfterDefer(input: CommandUserInput, options: CommandReplyOptions): Promise<void> {
         let copiedOptions: CommandReplyOptions = {...options};
         copiedOptions.wasDeferred = true;
         
         return await this.reply(input, copiedOptions);
     }
 
-    public async followUp(input: CommandInput, options: CommandReplyOptions): Promise<void> {
+    public async followUp(input: CommandUserInput, options: CommandReplyOptions): Promise<void> {
         let copiedOptions: CommandReplyOptions = {...options};
         copiedOptions.isFollowUp = true;
         

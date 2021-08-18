@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandInputSettings, ICommandFactory, CommandMatchingSettings, CommandMatchingType, CommandInput, CommandInteractionSettings, CommandInteraction, CommandInteractionRegistrationContext, CommandInteractionMainType, CommandInteractionContextTypeSettings } from '../../src/models/Command';
+import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandInputSettings, ICommandFactory, CommandMatchingSettings, CommandMatchingType, CommandUserInput, CommandInteractionSettings, CommandInteraction, CommandInteractionRegistrationContext, CommandInteractionMainType, CommandInteractionContextTypeSettings } from '../../src/models/Command';
 import { Message, Interaction } from 'discord.js';
 import { ICommandPermissions, CommandPermissionRequirementSettings, CommandPermissionFeedbackType, 
     CommandPermissionType, CommandPermissionRequirement, CommandPermissionGrantRevokeType } from '../../src/models/CommandPermission';
 import { IDiscordBot } from '../../src/models/DiscordBot';
 import { SlashCommandBuilder } from '@discordjs/builders';
-import { CommandReplyService } from '../../src/main';
+import { CommandInputBuilder, CommandInputStructureOptionType, CommandReplyService } from '../../src/main';
 
 export class EchoCommand implements ICommand, ICommandFactory, ICommandPermissions {
     public commandName: string = 'Echo';
@@ -14,8 +14,17 @@ export class EchoCommand implements ICommand, ICommandFactory, ICommandPermissio
     public permissionFailReplyType: CommandPermissionFeedbackType;
     public testIsSet: boolean = false;
     public inputSettings: CommandInputSettings;
+    private commandInputBuilder: CommandInputBuilder;
 
     public constructor() {
+        this.commandInputBuilder = new CommandInputBuilder().setName('beep')
+                                    .setDescription(this.commandDescription)
+                                    .addOption(option => 
+                                        option.setName('input')
+                                            .setDescription('The input to echo back')
+                                            .setType(CommandInputStructureOptionType.string)
+                                            .setRequired(true)
+                                    );
     }
 
     public makeCommand(): ICommand {
@@ -23,30 +32,22 @@ export class EchoCommand implements ICommand, ICommandFactory, ICommandPermissio
     }
     
     public async setupInputSettings(bot: IDiscordBot): Promise<void> {
-        // set up parser matching settings
-        let commandMessageSettings: CommandMatchingSettings = new CommandMatchingSettings('beep', CommandMatchingType.prefixedOneWord, '!', ' ');
-
         let commandInteractionSettings: CommandInteractionSettings = new CommandInteractionSettings();
         commandInteractionSettings.interactions = [];
 
-        let mainSlashCommandBuilder = new SlashCommandBuilder();
-        mainSlashCommandBuilder.setName('beep')
-                                .setDescription(this.commandDescription)
-                                .addStringOption(option =>
-                                    option.setName('input')
-                                        .setDescription('The input to echo back')
-                                        .setRequired(true));
+        let commandMessageSettings: CommandMatchingSettings = this.commandInputBuilder.getMessageMatchingSettings();
+        let mainSlashCommandBuilder = this.commandInputBuilder.toSlashCommandBuilder();
 
         let mainInteraction: CommandInteraction = new CommandInteraction(CommandInteractionRegistrationContext.global, mainSlashCommandBuilder);
         commandInteractionSettings.interactions.push(mainInteraction);
 
-        let userInteraction: CommandInteraction = new CommandInteraction(CommandInteractionRegistrationContext.global, null);
+        let userInteraction: CommandInteraction = new CommandInteraction(CommandInteractionRegistrationContext.global);
         userInteraction.mainType = CommandInteractionMainType.contextUser;
         userInteraction.contextMenuMainTypeSettings = new CommandInteractionContextTypeSettings();
         userInteraction.contextMenuMainTypeSettings.name = 'Echo Me Daddy';
         commandInteractionSettings.interactions.push(userInteraction);
 
-        let messageInteraction: CommandInteraction = new CommandInteraction(CommandInteractionRegistrationContext.allGuilds, null);
+        let messageInteraction: CommandInteraction = new CommandInteraction(CommandInteractionRegistrationContext.allGuilds);
         messageInteraction.mainType = CommandInteractionMainType.contextMessage;
         messageInteraction.contextMenuMainTypeSettings = new CommandInteractionContextTypeSettings();
         messageInteraction.contextMenuMainTypeSettings.name = 'Echo Message';
@@ -86,7 +87,7 @@ export class EchoCommand implements ICommand, ICommandFactory, ICommandPermissio
         return 'You do not have permission to beep boop.';
     }
     
-    public async execute(bot: IDiscordBot, input: CommandInput): Promise<ICommandResult> {
+    public async execute(bot: IDiscordBot, input: CommandUserInput): Promise<ICommandResult> {
             let result: CommandResult = new CommandResult();
             let replyService: CommandReplyService = new CommandReplyService();
             await replyService.deferReply(input);

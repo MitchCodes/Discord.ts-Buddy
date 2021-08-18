@@ -1,4 +1,4 @@
-import { ICommand, ICommandFactory, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandInputSettings, CommandMatchingSettings, CommandMatchingType, CommandInput } from '../../src/models/Command';
+import { ICommand, ICommandFactory, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandInputSettings, CommandMatchingSettings, CommandMatchingType, CommandUserInput } from '../../src/models/Command';
 import { Message, GuildMember, Interaction } from 'discord.js';
 import { ICommandPermissions, CommandPermissionRequirementSettings, CommandPermissionFeedbackType, 
     CommandPermissionType, CommandPermissionRequirement, CommandPermissionGrantRevokeType } from '../../src/models/CommandPermission';
@@ -84,7 +84,7 @@ export class TestCommandTwo implements ICommand, ICommandFactory, ICommandPermis
         return new TestCommandTwo();
     }
     
-    public execute(bot: IDiscordBot, input: CommandInput): Promise<ICommandResult> {
+    public execute(bot: IDiscordBot, input: CommandUserInput): Promise<ICommandResult> {
         return new Promise<ICommandResult>((resolve : (val: ICommandResult) => void) => {
             let result: CommandResult = new CommandResult();
 
