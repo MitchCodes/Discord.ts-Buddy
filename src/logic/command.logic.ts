@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-types */
 import { Interaction } from 'discord.js';
 import { ICommand, CommandMatchingType, ICommandFactory, CommandInteractionMainType } from '../models/Command';
@@ -96,15 +97,20 @@ export class CommandInteractionParser {
             if (this.botHelper.hasCommandFactory(comm)) {
                 if (comm.inputSettings && comm.inputSettings.interactionSettings && comm.inputSettings.interactionSettings.interactions) {
                     for (let interaction of comm.inputSettings.interactionSettings.interactions) {
-                        if (inputInteraction.isCommand() && interaction.mainType === CommandInteractionMainType.slashCommand) {
-                            if (inputInteraction.commandName === interaction.builder.name) {
-                                commands.push(comm);
+                        let interactionAny: any = <any>inputInteraction;
+                        if (interactionAny.commandName) {
+                            if (interaction.builder && interaction.builder.name) {
+                                if (interactionAny.commandName === interaction.builder.name) {
+                                    commands.push(comm);
+                                    continue;
+                                }
                             }
-                        }
 
-                        if (inputInteraction.isContextMenu() && interaction.mainType !== CommandInteractionMainType.slashCommand && interaction.contextMenuMainTypeSettings) {
-                            if (inputInteraction.commandName === interaction.contextMenuMainTypeSettings.name) {
-                                commands.push(comm);
+                            if (interaction.contextMenuMainTypeSettings && interaction.contextMenuMainTypeSettings.name) {
+                                if (interactionAny.commandName === interaction.contextMenuMainTypeSettings.name) {
+                                    commands.push(comm);
+                                    continue;
+                                }
                             }
                         }
                     }

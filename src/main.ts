@@ -9,8 +9,8 @@ export { CommandPermissionType, CommandPermissionFeedbackType, CommandPermission
 export { IDiscordBot, IAutoManagedBot, BotStatus } from './models/DiscordBot';
 export { IKeyedCollection, KeyedCollection, GuildCollection } from './models/GuildCollection';
 export { ErrorWithCode, GenericErrorCodes } from './models/Errors';
-
 export { BasicDictionary } from './models/BasicDictionary';
+export { CommandReplyOptions } from './models/CommandReply';
 
 // Helpers
 export { DiscordHelper } from './logic/helpers/discord.helper';
@@ -26,6 +26,7 @@ export { MultiGuildBot } from './logic/bots/multi-guild-bot';
 export { MessengerService } from './logic/services/messenger.service';
 export { CommandPermissionsService } from './logic/services/permissions.service';
 export { InteractionRegistrationCommandContext } from './logic/services/interaction-registry.service';
+export { CommandReplyService } from './logic/services/command-reply.service';
 
 // Commands
 export { CommandMessageParser } from './logic/command.logic';

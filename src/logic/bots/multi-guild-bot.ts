@@ -14,6 +14,7 @@ import { CommandPermissionsService } from '../services/permissions.service';
 import { MessengerService } from '../services/messenger.service';
 import { ILogger } from 'tsdatautils-core';
 import { InteractionRegistryService } from '../services/interaction-registry.service';
+import { ICommandMessageMatchFactory } from '../factories/commandmessagematch.factory';
 
 export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
     public guilds: Guild[] = [];
@@ -176,30 +177,9 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
 
     protected async handleCommandMessage(command: ICommand, msg: Message): Promise<ICommandResult> {
         // handle permissions
-        let commandAny: any = <any>command;
+        let permissionCommandResult: CommandResult = await this.handleCommandPermissionRequirements(command, CommandInputContext.message, msg, null);
 
-        let hasPermissions: boolean = true;
-        let permissionCommandResult: CommandResult = null;
-        if (commandAny.permissionRequirements) {
-            let commandPermissions = <ICommandPermissions>commandAny;
-            commandPermissions.setupPermissions(this, CommandInputContext.message, msg, null);
-            let permissionService: CommandPermissionsService = new CommandPermissionsService();
-
-            let permissionResult: CommandPermissionResult = await permissionService.hasPermissions(commandPermissions, CommandInputContext.message, msg, null);
-            if (permissionResult.permissionStatus === CommandPermissionResultStatus.noPermission) {
-                hasPermissions = false;
-
-                permissionCommandResult = CommandResult.buildSimpleError('Lack permission to run this', new Error('Lack of permissions'));
-                permissionCommandResult.replyHandled = true;
-                
-                this.botInfo('User ' + msg.member.user.username + ' tried to run command ' + command.commandName 
-                            + '(' + msg.content + ') and lacked permission.');
-                this.handleLackPermissionReply(commandPermissions, new CommandInput(CommandInputContext.message, msg, null));
-                this.handleLackPermissionDeleteMessage(permissionResult, new CommandInput(CommandInputContext.message, msg, null));                
-            }
-        }
-
-        if (hasPermissions) {
+        if (permissionCommandResult.status === CommandResultStatus.success) {
             // they have permission, run the command
             this.setupCommandPreExecute(command);
 
@@ -217,29 +197,9 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
 
     protected async handleCommandInteraction(command: ICommand, interaction: Interaction): Promise<ICommandResult> {
         // handle permissions
-        let commandAny: any = <any>command;
+        let permissionCommandResult: CommandResult = await this.handleCommandPermissionRequirements(command, CommandInputContext.interaction, null, interaction);
 
-        let hasPermissions: boolean = true;
-        let permissionCommandResult: CommandResult = null;
-        if (commandAny.permissionRequirements) {
-            let commandPermissions = <ICommandPermissions>commandAny;
-            commandPermissions.setupPermissions(this, CommandInputContext.interaction, null, interaction);
-            let permissionService: CommandPermissionsService = new CommandPermissionsService();
-
-            let permissionResult: CommandPermissionResult = await permissionService.hasPermissions(commandPermissions, CommandInputContext.interaction, null, interaction);
-            if (permissionResult.permissionStatus === CommandPermissionResultStatus.noPermission) {
-                hasPermissions = false;
-
-                permissionCommandResult = CommandResult.buildSimpleError('Lack permission to run this', new Error('Lack of permissions'));
-                permissionCommandResult.replyHandled = true;
-                
-                this.botInfo('User ' + interaction.member.user.username + ' tried to run command ' + command.commandName + ' and lacked permission.');
-                this.handleLackPermissionReply(commandPermissions, new CommandInput(CommandInputContext.interaction, null, interaction));
-                this.handleLackPermissionDeleteMessage(permissionResult, new CommandInput(CommandInputContext.interaction, null, interaction));                
-            }
-        }
-
-        if (hasPermissions) {
+        if (permissionCommandResult.status === CommandResultStatus.success) {
             // they have permission, run the command
             this.setupCommandPreExecute(command);
 
@@ -253,6 +213,30 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         } else {
             throw permissionCommandResult;
         }
+    }
+
+    protected async handleCommandPermissionRequirements(command: ICommand, inputContext: CommandInputContext, msg: Message, interaction: Interaction): Promise<CommandResult> {
+        let permissionCommandResult: CommandResult = new CommandResult();
+        permissionCommandResult.status = CommandResultStatus.success;
+
+        let commandAny: any = <any>command;
+        if (commandAny.permissionRequirements) {
+            let commandPermissions = <ICommandPermissions>commandAny;
+            commandPermissions.setupPermissions(this, inputContext, msg, interaction);
+            let permissionService: CommandPermissionsService = new CommandPermissionsService();
+
+            let permissionResult: CommandPermissionResult = await permissionService.hasPermissions(commandPermissions, inputContext, msg, interaction);
+            if (permissionResult.permissionStatus === CommandPermissionResultStatus.noPermission) {
+                permissionCommandResult = CommandResult.buildSimpleError('Lack permission to run this', new Error('Lack of permissions'));
+                permissionCommandResult.replyHandled = true;
+                
+                this.botInfo('User ' + interaction.member.user.username + ' tried to run command ' + command.commandName + ' and lacked permission.');
+                this.handleLackPermissionReply(commandPermissions, new CommandInput(inputContext, msg, interaction));
+                this.handleLackPermissionDeleteMessage(permissionResult, new CommandInput(inputContext, msg, interaction));                
+            }
+        }
+
+        return permissionCommandResult;
     }
 
     protected handleLackPermissionReply(commandPermissions: ICommandPermissions, input: CommandInput): void {
@@ -274,10 +258,8 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
             }
         } else {
             if (input.interaction) {
-                if (input.interaction.isCommand()) {
-                    input.interaction.reply(replyMessage);
-                } else if (input.interaction.isContextMenu()) {
-                    input.interaction.reply(replyMessage);
+                if ((<any>input.interaction).reply) {
+                    (<any>input.interaction).reply(replyMessage);
                 }
             }
         }

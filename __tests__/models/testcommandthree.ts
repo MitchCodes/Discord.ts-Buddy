@@ -5,6 +5,7 @@ import { ICommandPermissions, CommandPermissionRequirementSettings, CommandPermi
     CommandPermissionType, CommandPermissionRequirement, CommandPermissionGrantRevokeType } from '../../src/models/CommandPermission';
 import { IDiscordBot } from '../../src/models/DiscordBot';
 import { SlashCommandBuilder } from '@discordjs/builders';
+import { CommandReplyService } from '../../src/main';
 
 export class EchoCommand implements ICommand, ICommandFactory, ICommandPermissions {
     public commandName: string = 'Echo';
@@ -85,22 +86,17 @@ export class EchoCommand implements ICommand, ICommandFactory, ICommandPermissio
         return 'You do not have permission to beep boop.';
     }
     
-    public execute(bot: IDiscordBot, input: CommandInput): Promise<ICommandResult> {
-        return new Promise<ICommandResult>((resolve : (val: ICommandResult) => void) => {
+    public async execute(bot: IDiscordBot, input: CommandInput): Promise<ICommandResult> {
             let result: CommandResult = new CommandResult();
+            let replyService: CommandReplyService = new CommandReplyService();
+            await replyService.deferReply(input);
 
-            if (input.inputContext === CommandInputContext.message) {
-                input.msg.channel.send('boop');
-            } else {
-                if (input.interaction.isCommand()) {
-                    input.interaction.reply('boop');
-                } else if (input.interaction.isContextMenu()) {
-                    input.interaction.reply('boop');
-                }
-            }            
+            await replyService.replyAfterDefer(input, { content: 'boop', ephemeral: true });
+
+            await replyService.followUp(input, { content: 'Private follow-up!', ephemeral: true });
 
             result.status = CommandResultStatus.success;
-            resolve(result);
-        });
+
+            return result;
     }
 }
