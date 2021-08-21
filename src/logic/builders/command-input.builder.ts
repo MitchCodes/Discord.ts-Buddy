@@ -121,19 +121,19 @@ export class CommandInputBuilder {
 
     private createSlashCommandBuilderSubCommandGroup(builder: SlashCommandSubcommandGroupBuilder, option: CommandInputStructureOption) {
         if (option.name) {
-            builder.setName(this.input.name);
+            builder.setName(option.name);
         }
 
         if (option.description) {
-            builder.setDescription(this.input.description);
+            builder.setDescription(option.description);
         }
 
         if (option.options) {
-            for (let option of this.input.options) {
-                switch (option.type) {
+            for (let curOption of option.options) {
+                switch (curOption.type) {
                     case CommandInputStructureOptionType.subCommand:
                         builder.addSubcommand((subCommandBuilder: SlashCommandSubcommandBuilder) => {
-                            this.createSlashCommandBuilderSubCommand(subCommandBuilder, option);
+                            this.createSlashCommandBuilderSubCommand(subCommandBuilder, curOption);
                             return subCommandBuilder;
                         })
                         break;
@@ -144,16 +144,16 @@ export class CommandInputBuilder {
 
     private createSlashCommandBuilderSubCommand(builder: SlashCommandSubcommandBuilder, option: CommandInputStructureOption) {
         if (option.name) {
-            builder.setName(this.input.name);
+            builder.setName(option.name);
         }
 
         if (option.description) {
-            builder.setDescription(this.input.description);
+            builder.setDescription(option.description);
         }
 
         if (option.options) {
-            for (let option of this.input.options) {
-                this.createSlashCommandBuilderOption(builder, option);
+            for (let curOption of option.options) {
+                this.createSlashCommandBuilderOption(builder, curOption);
             }
         }
     }
@@ -253,6 +253,9 @@ export class CommandInputSubCommandGroupBuilder {
         let option: CommandInputStructureOption = new CommandInputStructureOption();
         option.type = CommandInputStructureOptionType.subCommand;
 
+        if (!this.option.options) {
+            this.option.options = [];
+        }
         this.option.options.push(option);
 
         let subCommandBuilder: CommandInputSubCommandBuilder = new CommandInputSubCommandBuilder(this.rootBuilder, option)
@@ -284,6 +287,9 @@ export class CommandInputSubCommandBuilder {
     public addOption(builder: (option: CommandInputOptionBuilder) => void): CommandInputSubCommandBuilder {
         let option: CommandInputStructureOption = new CommandInputStructureOption();
 
+        if (!this.option.options) {
+            this.option.options = [];
+        }
         this.option.options.push(option);
 
         let optionBuilder: CommandInputOptionBuilder = new CommandInputOptionBuilder(this.rootBuilder, option)

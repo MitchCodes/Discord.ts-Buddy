@@ -29,8 +29,8 @@ export class CommandResult implements ICommandResult {
     public message: string;
     public replyHandled: boolean;
 
-    public constructor() {
-        this.status = CommandResultStatus.pending;
+    public constructor(status: CommandResultStatus = CommandResultStatus.pending) {
+        this.status = status;
         this.replyHandled = false;
     }
 

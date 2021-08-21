@@ -12,7 +12,7 @@ export { ErrorWithCode, GenericErrorCodes } from './models/Errors';
 export { BasicDictionary } from './models/BasicDictionary';
 export { CommandReplyOptions } from './models/CommandReply';
 export { CommandInputStructure, CommandInputStructureOption, CommandInputStructureOptionType } from './models/CommandInputStructure';
-export { InputParseResult, InputParseValidationType } from './models/CommandInputParse';
+export { InputParseResult, InputParseValidationType, InputParseValidation } from './models/CommandInputParse';
 
 // Helpers
 export { DiscordHelper } from './logic/helpers/discord.helper';
