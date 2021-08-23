@@ -33,6 +33,8 @@ export { CommandPermissionsService } from './logic/services/permissions.service'
 export { InteractionRegistrationCommandContext } from './logic/services/interaction-registry.service';
 export { CommandReplyService } from './logic/services/command-reply.service';
 export { CommandUserInputParserService } from './logic/services/command-user-input-parser.service';
+export { FileObjectService } from './logic/services/file-object.service';
+export { HashService } from './logic/services/hash.service';
 
 // Commands
 export { CommandMessageParser } from './logic/command.logic';

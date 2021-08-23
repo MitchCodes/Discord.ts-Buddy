@@ -9,12 +9,13 @@ import { BitFieldResolvable, Client, Guild, Intents, IntentsString, Interaction,
 // tslint:disable-next-line:no-submodule-imports
 import * as Rx from 'rxjs/Rx';
 import { CommandInteractionParser, CommandMessageParser } from '../command.logic';
-import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandUserInput } from '../../models/Command';
+import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandUserInput, CommandInteractionRegistrationContext } from '../../models/Command';
 import { CommandPermissionsService } from '../services/permissions.service';
 import { MessengerService } from '../services/messenger.service';
 import { ILogger } from 'tsdatautils-core';
-import { InteractionRegistryService } from '../services/interaction-registry.service';
-import { ICommandMessageMatchFactory } from '../factories/commandmessagematch.factory';
+import { InteractionRegistrationCommandContext, InteractionRegistryService } from '../services/interaction-registry.service';
+import { HashService } from '../services/hash.service';
+import { FileObjectService } from '../services/file-object.service';
 
 export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
     public guilds: Guild[] = [];
@@ -121,11 +122,78 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
     }
 
     public async registerInteractions(): Promise<void> {
-        let interactionRegistryService: InteractionRegistryService = new InteractionRegistryService(this.logger);
-        // TODO: Handle registering identical interactions over and over if everything is the same. Don't allow it.
+        let interactionRegistryService: InteractionRegistryService = new InteractionRegistryService(this.logger, this.shouldRegisterInteractions, this.postInteractionRegistration);
         await interactionRegistryService.registerInteractions(this.botClient, this.botClient.user.id, this.botToken, [...this.botClient.guilds.cache.values()], this.commands);
     }
 
+    public async shouldRegisterInteractions(context: CommandInteractionRegistrationContext, interactions: InteractionRegistrationCommandContext[], guildId: string): Promise<boolean> {
+        let shouldRegister: boolean = true;
+
+        try {
+            let fileObjectService: FileObjectService = new FileObjectService();
+            let hashService: HashService = new HashService();
+            
+            let anyDifferent: boolean = false;
+            for (let interactionContext of interactions) {
+                if (!interactionContext.interaction.builder) {
+                    continue;
+                }
+                let interactionJson: string = JSON.stringify(interactionContext.interaction.builder.toJSON());
+                let fileName: string = interactionContext.command.commandName + '_' + interactionContext.interaction.builder.name;
+
+                if (context !== CommandInteractionRegistrationContext.global && guildId) {
+                    fileName = guildId + '_' + fileName;
+                }
+        
+                fileName = 'interactionRegistryHashes/' + fileName;
+
+                let interactionHash: string = hashService.getHash(interactionJson);
+                let fileHash: { interactionHash: string } = await fileObjectService.getFromFile<{ interactionHash: string }>(fileName);
+
+                if (!fileHash || !interactionHash || interactionHash !== fileHash.interactionHash) {
+                    anyDifferent = true;
+                    break;
+                }
+            }
+
+            if (!anyDifferent) {
+                shouldRegister = false;
+            }
+        } catch (err) {
+            this.logger.error('Error determining if the bot should register interactions: ' + err);
+        }
+
+        return shouldRegister;
+    }
+
+    public async postInteractionRegistration(context: CommandInteractionRegistrationContext, interactions: InteractionRegistrationCommandContext[], guildId: string): Promise<void> {
+        try {
+            let fileObjectService: FileObjectService = new FileObjectService();
+            let hashService: HashService = new HashService();
+            
+            for (let interactionContext of interactions) {
+                if (!interactionContext.interaction.builder) {
+                    continue;
+                }
+
+                let interactionJson: string = JSON.stringify(interactionContext.interaction.builder.toJSON());
+                let fileName: string = interactionContext.command.commandName + '_' + interactionContext.interaction.builder.name;
+
+                if (context !== CommandInteractionRegistrationContext.global && guildId) {
+                    fileName = guildId + '_' + fileName;
+                }
+
+                fileName = 'interactionRegistryHashes/' + fileName;
+
+                let interactionHash: string = hashService.getHash(interactionJson);
+                
+                await fileObjectService.setToFile<{ interactionHash: string }>(fileName, { interactionHash: interactionHash });
+            }
+        } catch (err) {
+            this.logger.error('Error handling post interaction registration: ' + err);
+        }
+    }
+    
     // tslint:disable-next-line:no-empty
     protected setupCommandPreExecute(command: ICommand): void {
     }

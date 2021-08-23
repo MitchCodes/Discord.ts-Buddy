@@ -35,11 +35,22 @@ export class CommandPermissionRequirement {
     /** The higher the priority, the more it takes precedence over other requirements that include or exclude. */
     public priority: number = 1;
     public customCallback: (commandInputContext: CommandInputContext, msg: Message, interaction: Interaction, guildMember: GuildMember, requirement: CommandPermissionRequirement) => Promise<boolean>;
+
+    public constructor(permissionType: CommandPermissionType = CommandPermissionType.user, identifier: string = '', successGrantRevokeType: CommandPermissionGrantRevokeType = CommandPermissionGrantRevokeType.grant) {
+        this.permissionType = permissionType;
+        this.identifier = identifier;
+        this.successGrantRevokeType = successGrantRevokeType;
+    }
 }
 
 export class CommandPermissionRequirementSettings {
     public requirements: CommandPermissionRequirement[] = [];
     public hasPermissionByDefault: boolean = false;
+
+    public constructor(requirements: CommandPermissionRequirement[] = [], hasPermissionByDefault: boolean = false) {
+        this.requirements = requirements;
+        this.hasPermissionByDefault = hasPermissionByDefault;
+    }
 }
 
 export interface ICommandPermissions {
