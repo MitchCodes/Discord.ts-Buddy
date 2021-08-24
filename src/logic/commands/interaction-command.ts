@@ -21,6 +21,7 @@ export abstract class InteractionCommand implements ICommand, ICommandFactory, I
     protected setupMessageMatching: boolean = false;
     protected interactionRegistrationContext: CommandInteractionRegistrationContext = CommandInteractionRegistrationContext.allGuilds;
     protected commandInputBuilder: CommandInputBuilder = null;
+    protected deferReply: boolean = true;
 
     public constructor(logger: ILogger, configProvider: Provider) {
         this.logger = logger;
@@ -34,15 +35,18 @@ export abstract class InteractionCommand implements ICommand, ICommandFactory, I
     abstract executeInteraction(bot: IDiscordBot, input: CommandUserInput, inputParseResult: InputParseResult, replyService: CommandSimpleReplyService): Promise<ICommandResult>;
 
     public async setupInputSettings(bot: IDiscordBot): Promise<void> {
-        let mainInteraction: CommandInteraction = new CommandInteraction(this.interactionRegistrationContext, this.commandInputBuilder.toSlashCommandBuilder());
         let commandInteractionSettings: CommandInteractionSettings = new CommandInteractionSettings();
-        commandInteractionSettings.interactions = [mainInteraction];
+        commandInteractionSettings.interactions = this.addInteractions(bot);
         
         let commandMatchingSettings: CommandMatchingSettings = null;
         if (this.setupMessageMatching && this.commandInputBuilder && this.commandInputBuilder.input.prefix) {
             commandMatchingSettings = this.commandInputBuilder.getMessageMatchingSettings();
         }
         this.inputSettings = new CommandInputSettings(commandMatchingSettings, commandInteractionSettings);
+    }
+
+    public addInteractions(bot: IDiscordBot): CommandInteraction[] {
+        return [new CommandInteraction(this.interactionRegistrationContext, this.commandInputBuilder.toSlashCommandBuilder())];
     }
 
     public setupPermissions(bot: IDiscordBot, input: CommandUserInput): void {
@@ -104,7 +108,9 @@ export abstract class InteractionCommand implements ICommand, ICommandFactory, I
         let replyService: CommandSimpleReplyService = new CommandSimpleReplyService();
         let commandParserService: CommandUserInputParserService = new CommandUserInputParserService();
 
-        await replyService.deferReply(input);
+        if (this.deferReply) {
+            await replyService.deferReply(input);
+        }
 
         let inputParseResult: InputParseResult = await commandParserService.parseUserInput(input, this.commandInputBuilder.input);
         if (!commandParserService.isValid(inputParseResult)) {
