@@ -1,3 +1,5 @@
+import { fromPromise } from 'rxjs/observable/fromPromise';
+
 // Models
 export { BotRestartSettings } from './models/BotRestartSettings';
 export { CommandResultStatus, ICommandResult, CommandResult, 
@@ -19,6 +21,7 @@ export { DiscordHelper } from './logic/helpers/discord.helper';
 export { ModelComparer } from './logic/helpers/modelcompare.helper';
 export { StringHelper } from './logic/helpers/string.helper';
 export { BotHelper } from './logic/helpers/bot.helper';
+export { UserInputHelper } from './logic/helpers/user-input.helper';
 
 // Builders
 export { CommandInputBuilder, CommandInputOptionBuilder, CommandInputSubCommandBuilder, CommandInputSubCommandGroupBuilder } from './logic/builders/command-input.builder';
