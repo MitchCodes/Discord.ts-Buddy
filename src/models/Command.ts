@@ -1,5 +1,7 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import { Interaction, Message } from 'discord.js';
+import { Provider } from 'nconf';
+import { ILogger } from 'tsdatautils-core';
 import { CommandPermissionRequirementSettings } from './CommandPermission';
 import { IDiscordBot } from './DiscordBot';
 
@@ -61,6 +63,15 @@ export interface ICommand {
 export interface ICommandFactory {
     makeCommand(): ICommand;
 }
+
+export interface ICommandConfig {
+    configProvider: Provider;
+}
+
+export interface ICommandLogger {
+    logger: ILogger;
+}
+
 
 export enum CommandMatchingType {
     prefixedOneWord = 0,

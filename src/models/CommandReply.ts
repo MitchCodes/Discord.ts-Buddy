@@ -7,6 +7,10 @@ export class CommandReplyOptions {
     public interactionComponents?: MessageActionRow[] | MessageActionRowOptions[];
     public mentions?: MessageMentionOptions;
     public ephemeral?: boolean = false;
+
+}
+
+export class CommandReplyStateOptions {
     public wasDeferred?: boolean = false;
     public isFollowUp?: boolean = false;
 }

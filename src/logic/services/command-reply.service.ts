@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { InteractionReplyOptions } from "discord.js";
 import { CommandUserInput, CommandInputContext } from "../../models/Command";
-import { CommandReplyOptions } from "../../models/CommandReply";
+import { CommandReplyOptions, CommandReplyStateOptions } from "../../models/CommandReply";
 import { StringHelper } from "../helpers/string.helper";
 
 export class CommandReplyService {
@@ -11,7 +11,7 @@ export class CommandReplyService {
         this.maxTextMessageLength = maxTextMessageLength;
     }
 
-    public async reply(input: CommandUserInput, options: CommandReplyOptions): Promise<void> {
+    public async reply(input: CommandUserInput, options: CommandReplyOptions & CommandReplyStateOptions): Promise<void> {
         if (!input) {
             return;
         }
@@ -112,15 +112,15 @@ export class CommandReplyService {
         }
     }
 
-    public async replyAfterDefer(input: CommandUserInput, options: CommandReplyOptions): Promise<void> {
-        let copiedOptions: CommandReplyOptions = {...options};
+    public async replyAfterDefer(input: CommandUserInput, options: CommandReplyOptions & CommandReplyStateOptions): Promise<void> {
+        let copiedOptions: CommandReplyOptions & CommandReplyStateOptions = {...options};
         copiedOptions.wasDeferred = true;
         
         return await this.reply(input, copiedOptions);
     }
 
-    public async followUp(input: CommandUserInput, options: CommandReplyOptions): Promise<void> {
-        let copiedOptions: CommandReplyOptions = {...options};
+    public async followUp(input: CommandUserInput, options: CommandReplyOptions & CommandReplyStateOptions): Promise<void> {
+        let copiedOptions: CommandReplyOptions & CommandReplyStateOptions = {...options};
         copiedOptions.isFollowUp = true;
         
         return await this.reply(input, copiedOptions);

@@ -93,7 +93,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         for (let command of commands) {
             command.setupInputSettings(this);
             if ((<any>command).setupPermissions) {
-                (<ICommandPermissions><unknown>command).setupPermissions(this, CommandInputContext.none, null, null);
+                (<ICommandPermissions><unknown>command).setupPermissions(this, new CommandUserInput(CommandInputContext.none, null, null));
             }
             this.commands.push(command);
         }
@@ -291,7 +291,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         let commandAny: any = <any>command;
         if (commandAny.permissionRequirements) {
             let commandPermissions = <ICommandPermissions>commandAny;
-            commandPermissions.setupPermissions(this, inputContext, msg, interaction);
+            commandPermissions.setupPermissions(this, new CommandUserInput(inputContext, msg, interaction));
             let permissionService: CommandPermissionsService = new CommandPermissionsService();
 
             let permissionResult: CommandPermissionResult = await permissionService.hasPermissions(commandPermissions, inputContext, msg, interaction);

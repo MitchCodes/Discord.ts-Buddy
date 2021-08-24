@@ -1,6 +1,6 @@
 import { Message, GuildMember, Interaction } from 'discord.js';
 import { IDiscordBot } from '../main';
-import { CommandInputContext } from './Command';
+import { CommandInputContext, CommandUserInput } from './Command';
 
 export enum CommandPermissionType {
     user,
@@ -57,7 +57,7 @@ export interface ICommandPermissions {
     permissionRequirements: CommandPermissionRequirementSettings;
     permissionFailReplyType: CommandPermissionFeedbackType;
     getPermissionFailReplyText(commandInputContext: CommandInputContext, msg: Message, interaction: Interaction): string;
-    setupPermissions(bot: IDiscordBot, commandInputContext: CommandInputContext, msg: Message, interaction: Interaction): void;
+    setupPermissions(bot: IDiscordBot, input: CommandUserInput): void;
 }
 
 export enum CommandPermissionResultStatus {
