@@ -142,12 +142,13 @@ export class InteractionRegistryService {
     }
 
     private async registerGuildGlobalInteractions(clientId: string, rest: REST, interactions: InteractionRegistrationCommandContext[]): Promise<void> {
-        let interactionBuilderData: { name: string; description: string; options: APIApplicationCommandOption[]; }[] = this.getBuilderData(interactions);
-
-        let InteractionCommandContextDictionary: BasicDictionary<InteractionRegistrationCommandContext> = this.getInteractionDictionaryByName(interactions);
         this.logger.info('Registering global commands');
 
         try {
+            let interactionBuilderData: { name: string; description: string; options: APIApplicationCommandOption[]; }[] = this.getBuilderData(interactions);
+
+            let InteractionCommandContextDictionary: BasicDictionary<InteractionRegistrationCommandContext> = this.getInteractionDictionaryByName(interactions);
+
             let applicationInteractions: any = await rest.put(
                 Routes.applicationCommands(clientId),
                 { body: interactionBuilderData },
@@ -171,11 +172,12 @@ export class InteractionRegistryService {
     }
 
     private async registerGuildInteractions(clientId: string, rest: REST, guildId: string, interactions: InteractionRegistrationCommandContext[]): Promise<void> {
-        let interactionBuilderData: { name: string; description: string; options: APIApplicationCommandOption[]; }[] = this.getBuilderData(interactions);
-        let InteractionCommandContextDictionary: BasicDictionary<InteractionRegistrationCommandContext> = this.getInteractionDictionaryByName(interactions);
         this.logger.info('Registering commands for guild ' + guildId);
 
         try {
+            let interactionBuilderData: { name: string; description: string; options: APIApplicationCommandOption[]; }[] = this.getBuilderData(interactions);
+            let InteractionCommandContextDictionary: BasicDictionary<InteractionRegistrationCommandContext> = this.getInteractionDictionaryByName(interactions);
+
             let applicationInteractions: any = await rest.put(
                 Routes.applicationGuildCommands(clientId, guildId),
                 { body: interactionBuilderData },

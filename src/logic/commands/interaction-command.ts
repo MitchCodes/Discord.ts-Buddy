@@ -23,7 +23,9 @@ export abstract class InteractionCommand implements ICommand, ICommandFactory, I
     protected commandInputBuilder: CommandInputBuilder = null;
     protected deferReply: boolean = true;
 
-    public constructor(logger: ILogger, configProvider: Provider) {
+    public constructor(commandName: string, commandDescription: string, logger: ILogger, configProvider: Provider) {
+        this.commandName = commandName;
+        this.commandDescription = commandDescription;
         this.logger = logger;
         this.configProvider = configProvider;
         this.permissionRequirements = new CommandPermissionRequirementSettings();
