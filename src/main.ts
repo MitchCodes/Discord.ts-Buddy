@@ -1,5 +1,3 @@
-import { fromPromise } from 'rxjs/observable/fromPromise';
-
 // Models
 export { BotRestartSettings } from './models/BotRestartSettings';
 export { CommandResultStatus, ICommandResult, CommandResult, 
@@ -8,7 +6,7 @@ export { CommandResultStatus, ICommandResult, CommandResult,
 export { CommandPermissionType, CommandPermissionFeedbackType, CommandPermissionRequirement, 
         CommandPermissionRequirementSettings, ICommandPermissions, CommandPermissionResultStatus,
         CommandPermissionResult, CommandPermissionGrantRevokeType } from './models/CommandPermission';
-export { IDiscordBot, IAutoManagedBot, BotStatus } from './models/DiscordBot';
+export { IDiscordBot, IAutoManagedBot, BotStatus, IExposedClientBot } from './models/DiscordBot';
 export { IKeyedCollection, KeyedCollection, GuildCollection } from './models/GuildCollection';
 export { ErrorWithCode, GenericErrorCodes } from './models/Errors';
 export { BasicDictionary } from './models/BasicDictionary';
@@ -22,6 +20,7 @@ export { ModelComparer } from './logic/helpers/modelcompare.helper';
 export { StringHelper } from './logic/helpers/string.helper';
 export { BotHelper } from './logic/helpers/bot.helper';
 export { UserInputHelper } from './logic/helpers/user-input.helper';
+export { PromiseHelper } from './logic/helpers/promise.helper';
 
 // Builders
 export { CommandInputBuilder, CommandInputOptionBuilder, CommandInputSubCommandBuilder, CommandInputSubCommandGroupBuilder } from './logic/builders/command-input.builder';
@@ -39,6 +38,7 @@ export { CommandSimpleReplyService } from './logic/services/command-simplereply.
 export { CommandUserInputParserService } from './logic/services/command-user-input-parser.service';
 export { FileObjectService } from './logic/services/file-object.service';
 export { HashService } from './logic/services/hash.service';
+export { SoundService } from './logic/services/sound.service';
 
 // Commands
 export { InteractionCommand } from './logic/commands/interaction-command';

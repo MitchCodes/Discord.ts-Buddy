@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Logger, createLogger, transports } from 'winston';
 import * as nconf from 'nconf';
 import { Guild, VoiceChannel, TextChannel } from 'discord.js';
 import { MultiGuildBot } from '../../src/logic/bots/multi-guild-bot';
 import { TestBot } from './testbot';
 import { WinstonLogger } from 'tsdatautils-core';
+import { PromiseHelper } from '../../src/main';
 
 describe('multi-guild-bot tests', () => {
     let logger: Logger;
@@ -165,9 +167,111 @@ describe('multi-guild-bot tests', () => {
         return;
     });
 
+    test('promise stuff', (finish) => {
+        let testPromise: Promise<void> = new Promise<void>((resolve, reject) => {
+            let timeout: NodeJS.Timeout = setTimeout(() => {
+                reject('timeout');
+            }, 500);
+
+            let resolveTimeout: NodeJS.Timeout = setTimeout(() => {
+                clearTimeout(timeout);
+                resolve();
+            }, 1000);
+        });
+
+        testPromise.then(() => {
+            console.log('promise stuff Resolved');
+        }).catch((err) => {
+            console.log('promise stuff err: ' + err);
+            finish();
+        });
+    });
+
+    test('promise stuff two', async () => {
+        let testPromise: Promise<void> = new Promise<void>((resolve, reject) => {
+            let timeout: NodeJS.Timeout = setTimeout(() => {
+                reject('timeout');
+            }, 500);
+
+            let resolveTimeout: NodeJS.Timeout = setTimeout(() => {
+                clearTimeout(timeout);
+                resolve();
+            }, 1000);
+        });
+
+        try {
+            await testPromise;
+            console.log('promise stuff 2 resolve');
+        } catch (err) {
+            console.log('promise stuff 2 err: ' + err);
+        }
+        return;
+    });
+
+    test('promise stuff three', async () => {
+        let testPromise: Promise<void> = new Promise<void>((resolve, reject) => {
+            let timeout: NodeJS.Timeout = setTimeout(() => {
+                reject('timeout');
+            }, 1000);
+
+            let resolveTimeout: NodeJS.Timeout = setTimeout(() => {
+                resolve();
+            }, 500);
+        });
+
+        let testPromiseTwo: Promise<void> = new Promise<void>((resolve) => {
+            setTimeout(() => {
+                resolve();
+            }, 2000);
+        });
+
+        try {
+            await testPromise;
+            console.log('promise stuff 3 resolve');
+            await testPromiseTwo;
+            console.log('promise stuff 3 yahoo')
+        } catch (err) {
+            console.log('promise stuff 3 err: ' + err);
+        }
+        return;
+    });
+
+    test('async error handling', async () => {
+        let asyncHelper: AsyncHelper = new AsyncHelper();
+        await asyncHelper.testFunction();
+        return;
+    });
+
+    /* uncomment to give time to debug
     test('wait for debugging', (finish) => {
         setTimeout(() => {
             finish();
         }, 120000);
     });
+    */
 });
+
+
+class AsyncHelper {
+    public async testFunction(): Promise<void> {
+        try {
+            await this.testFunctionTwo();
+            console.log('test function finished');
+        } catch (err) {
+            console.log('error caught: ' + err);
+        }
+    }
+    
+    public async testFunctionTwo(): Promise<void> {
+        await this.testFunctionThree();
+    }
+
+    public async testFunctionThree(): Promise<void> {
+        await this.failFunction();
+    }
+
+    public async failFunction(): Promise<void> {
+        await PromiseHelper.sleep(1000);
+        throw 'Fail!';
+    }
+}
