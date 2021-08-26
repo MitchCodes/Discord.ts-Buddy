@@ -13,6 +13,10 @@ export class SoundService {
             connection = null;
         }
 
+        if (connection && connection.state.status === VoiceConnectionStatus.Destroyed) {
+            connection = null;
+        }
+
         return connection;
     }
 
