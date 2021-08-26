@@ -20,7 +20,7 @@ export class SoundService {
         let connection: VoiceConnection = getVoiceConnection(guildId, bot.name);
         let hasConnection: boolean = false;
 
-        if (connection) {
+        if (connection && connection.state.status !== VoiceConnectionStatus.Disconnected) {
             hasConnection = true;
         }
 
