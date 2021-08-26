@@ -24,27 +24,29 @@ export class SoundService {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private async playSoundInChannelInternal(guildId: string, channelId: string, adapterCreator: any, audioResource: AudioResource): Promise<void> {
-        let voiceConnection: VoiceConnection = joinVoiceChannel({
-            channelId: channelId,
-            guildId: guildId,
-            adapterCreator: adapterCreator,
-        });
-        
-        let voiceConnectionReady: Promise<void> = new Promise<void>((resolve, reject) => {
-            let timeout: NodeJS.Timeout = setTimeout(() => {
-                reject('Voice connection timeout');
-            }, 10000);
-
-            voiceConnection.on(VoiceConnectionStatus.Ready, () => {
-                clearTimeout(timeout);
-                resolve();
-            });
-        });
-
-        await voiceConnectionReady;
-
+        let voiceConnection: VoiceConnection = null;
         let audioPlayer: AudioPlayer = null;
         try {
+            voiceConnection = joinVoiceChannel({
+                channelId: channelId,
+                guildId: guildId,
+                adapterCreator: adapterCreator,
+            });
+            
+            let voiceConnectionReady: Promise<void> = new Promise<void>((resolve, reject) => {
+                let timeout: NodeJS.Timeout = setTimeout(() => {
+                    reject('Voice connection timeout');
+                }, 10000);
+    
+                voiceConnection.on(VoiceConnectionStatus.Ready, () => {
+                    clearTimeout(timeout);
+                    resolve();
+                });
+            });
+    
+            await voiceConnectionReady;
+    
+            
             audioPlayer = createAudioPlayer({
                 behaviors: {
                     noSubscriber: NoSubscriberBehavior.Pause,
