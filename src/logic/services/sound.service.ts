@@ -2,10 +2,22 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, entersState, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection, VoiceConnectionStatus } from "@discordjs/voice";
 import { VoiceChannel } from "discord.js";
 import { Readable } from "stream";
+import { IDiscordBot } from "../../models/DiscordBot";
 
 export class SoundService {
-    public isInVoiceChannel(guildId: string): boolean {
-        let connection: VoiceConnection = getVoiceConnection(guildId);
+    public getVoiceConnection(bot: IDiscordBot, guildId: string, destroyIfDisconnected: boolean = true): VoiceConnection {
+        let connection: VoiceConnection = getVoiceConnection(guildId, bot.name);
+        
+        if (destroyIfDisconnected && connection && connection.state.status === VoiceConnectionStatus.Disconnected) {
+            connection.destroy();
+            connection = null;
+        }
+
+        return connection;
+    }
+
+    public isInVoiceChannel(bot: IDiscordBot, guildId: string): boolean {
+        let connection: VoiceConnection = getVoiceConnection(guildId, bot.name);
         let hasConnection: boolean = false;
 
         if (connection) {
@@ -15,15 +27,15 @@ export class SoundService {
         return hasConnection;
     }
 
-    public async playSoundInChannel(voiceChannel: VoiceChannel, audioInput: string | Readable): Promise<void> {
+    public async playSoundInChannel(bot: IDiscordBot, voiceChannel: VoiceChannel, audioInput: string | Readable): Promise<void> {
         if (voiceChannel && audioInput) {
             let audioResource: AudioResource = createAudioResource(audioInput);
-            await this.playSoundInChannelInternal(voiceChannel.guild.id, voiceChannel.id, voiceChannel.guild.voiceAdapterCreator, audioResource);
+            await this.playSoundInChannelInternal(bot.name, voiceChannel.guild.id, voiceChannel.id, voiceChannel.guild.voiceAdapterCreator, audioResource);
         }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private async playSoundInChannelInternal(guildId: string, channelId: string, adapterCreator: any, audioResource: AudioResource): Promise<void> {
+    private async playSoundInChannelInternal(groupId: string, guildId: string, channelId: string, adapterCreator: any, audioResource: AudioResource): Promise<void> {
         let voiceConnection: VoiceConnection = null;
         let audioPlayer: AudioPlayer = null;
         try {
@@ -31,6 +43,7 @@ export class SoundService {
                 channelId: channelId,
                 guildId: guildId,
                 adapterCreator: adapterCreator,
+                group: groupId,
             });
             
             let voiceConnectionReady: Promise<void> = new Promise<void>((resolve, reject) => {
