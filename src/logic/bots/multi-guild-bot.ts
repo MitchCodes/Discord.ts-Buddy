@@ -9,7 +9,7 @@ import { BitFieldResolvable, Client, Guild, Intents, IntentsString, Interaction,
 // tslint:disable-next-line:no-submodule-imports
 import * as Rx from 'rxjs/Rx';
 import { CommandInteractionParser, CommandMessageParser } from '../command.logic';
-import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandUserInput, CommandInteractionRegistrationContext } from '../../models/Command';
+import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandUserInput, CommandInteractionRegistrationContext, CommandInteractionMainType } from '../../models/Command';
 import { CommandPermissionsService } from '../services/permissions.service';
 import { MessengerService } from '../services/messenger.service';
 import { ILogger } from 'tsdatautils-core';
@@ -135,16 +135,32 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
             
             let anyDifferent: boolean = false;
             for (let interactionContext of interactions) {
-                if (!interactionContext.interaction.builder) {
+                if (!interactionContext.interaction) {
                     continue;
                 }
-                let interactionJson: string = JSON.stringify(interactionContext.interaction.builder.toJSON());
-                let fileName: string = interactionContext.command.commandName + '_' + interactionContext.interaction.builder.name;
 
+                let interactionJson: string = null;
+                let fileName: string = null;
+                if (interactionContext.interaction.mainType === CommandInteractionMainType.slashCommand) {
+                    if (!interactionContext.interaction.builder) {
+                        continue;
+                    }
+
+                    interactionJson = JSON.stringify(interactionContext.interaction.builder.toJSON());
+                    fileName = interactionContext.command.commandName + '_' + interactionContext.interaction.builder.name;
+                } else {
+                    if (!interactionContext.interaction.contextMenuMainTypeSettings) {
+                        continue;
+                    }
+
+                    interactionJson = JSON.stringify(interactionContext.interaction.contextMenuMainTypeSettings);
+                    fileName = interactionContext.command.commandName + '_' + interactionContext.interaction.contextMenuMainTypeSettings.name;
+                }
+        
                 if (context !== CommandInteractionRegistrationContext.global && guildId) {
                     fileName = guildId + '_' + fileName;
                 }
-        
+
                 fileName = 'interactionRegistryHashes/' + fileName;
 
                 let interactionHash: string = hashService.getHash(interactionJson);
@@ -172,12 +188,23 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
             let hashService: HashService = new HashService();
             
             for (let interactionContext of interactions) {
-                if (!interactionContext.interaction.builder) {
-                    continue;
-                }
+                let interactionJson: string = null;
+                let fileName: string = null;
+                if (interactionContext.interaction.mainType === CommandInteractionMainType.slashCommand) {
+                    if (!interactionContext.interaction.builder) {
+                        continue;
+                    }
 
-                let interactionJson: string = JSON.stringify(interactionContext.interaction.builder.toJSON());
-                let fileName: string = interactionContext.command.commandName + '_' + interactionContext.interaction.builder.name;
+                    interactionJson = JSON.stringify(interactionContext.interaction.builder.toJSON());
+                    fileName = interactionContext.command.commandName + '_' + interactionContext.interaction.builder.name;
+                } else {
+                    if (!interactionContext.interaction.contextMenuMainTypeSettings) {
+                        continue;
+                    }
+
+                    interactionJson = JSON.stringify(interactionContext.interaction.contextMenuMainTypeSettings);
+                    fileName = interactionContext.command.commandName + '_' + interactionContext.interaction.contextMenuMainTypeSettings.name;
+                }
 
                 if (context !== CommandInteractionRegistrationContext.global && guildId) {
                     fileName = guildId + '_' + fileName;
