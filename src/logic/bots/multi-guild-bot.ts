@@ -92,7 +92,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         for (let command of commands) {
             command.setupInputSettings(this);
             if ((<any>command).setupPermissions) {
-                (<ICommandPermissions><unknown>command).setupPermissions(this, new CommandUserInput(CommandInputContext.none, null, null));
+                await (<ICommandPermissions><unknown>command).setupPermissions(this, new CommandUserInput(CommandInputContext.none, null, null));
             }
             this.commands.push(command);
         }
