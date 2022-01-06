@@ -127,7 +127,7 @@ export class CommandPermissionsService {
 
     private getGuildMember(inputContext: CommandInputContext, msg: Message, interaction: Interaction): GuildMember {
         if (inputContext === CommandInputContext.interaction) {
-            if (interaction && interaction instanceof GuildMember) {
+            if (interaction && interaction.member instanceof GuildMember) {
                 return <GuildMember>interaction.member;
             } else {
                 return null;
