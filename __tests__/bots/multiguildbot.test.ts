@@ -52,6 +52,7 @@ describe('multi-guild-bot tests', () => {
         
         if (mainBotToken && secondBotToken) {
             mainBotClient = new TestBot('Main Bot', mainBotToken, new WinstonLogger(logger), nconf);
+            await mainBotClient.setupBot();
             secondBotClient = new MultiGuildBot('Second Bot', secondBotToken, new WinstonLogger(logger), nconf);
 
             logger.info('Main Token: ' + mainBotToken);

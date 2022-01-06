@@ -72,7 +72,7 @@ export class TestCommandTwo implements ICommand, ICommandFactory, ICommandPermis
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    public setupPermissions(bot: IDiscordBot, input: CommandUserInput): void {
+    public async setupPermissions(bot: IDiscordBot, input: CommandUserInput): Promise<void> {
         
     }
 

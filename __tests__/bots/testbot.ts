@@ -8,8 +8,8 @@ export class TestBot extends MultiGuildBot {
     public pingPongTimesCalled: number = 0;
 
     // tslint:disable-next-line:no-unnecessary-override
-    public setupBot(): void {
-        super.setupBot(); // not calling this does not do default setup code. 
+    public async setupBot(): Promise<void> {
+        await super.setupBot(); // not calling this does not do default setup code. 
         
         // any setup code (event handling, etc)
     }

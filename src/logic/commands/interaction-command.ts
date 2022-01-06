@@ -51,7 +51,7 @@ export abstract class InteractionCommand implements ICommand, ICommandFactory, I
         return [new CommandInteraction(this.interactionRegistrationContext, this.commandInputBuilder.toSlashCommandBuilder())];
     }
 
-    public setupPermissions(bot: IDiscordBot, input: CommandUserInput): void {
+    public async setupPermissions(bot: IDiscordBot, input: CommandUserInput): Promise<void> {
         let isInitialSetup: boolean = (!input.msg && !input.interaction);
 
         for (let requirement of this.setupRolePermissions(bot, input, isInitialSetup)) {

@@ -48,7 +48,6 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         this.conf = passedConf;
 
         this.subscribeToSubjects();
-        this.setupBot();
     }
 
     public async startBot(intents: BitFieldResolvable<IntentsString, number> = null): Promise<string> {
@@ -86,7 +85,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
     }
 
     // tslint:disable-next-line:no-empty
-    public setupBot(): void {
+    public async setupBot(): Promise<void> {
 
         // Default command parser setup
         let commands: ICommand[] = this.setupCommands();
@@ -318,7 +317,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         let commandAny: any = <any>command;
         if (commandAny.permissionRequirements) {
             let commandPermissions = <ICommandPermissions>commandAny;
-            commandPermissions.setupPermissions(this, new CommandUserInput(inputContext, msg, interaction));
+            await commandPermissions.setupPermissions(this, new CommandUserInput(inputContext, msg, interaction));
             let permissionService: CommandPermissionsService = new CommandPermissionsService();
 
             let permissionResult: CommandPermissionResult = await permissionService.hasPermissions(commandPermissions, inputContext, msg, interaction);

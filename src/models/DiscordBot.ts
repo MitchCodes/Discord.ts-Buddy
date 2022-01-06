@@ -8,7 +8,7 @@ export interface IDiscordBot {
     color: number;
     logger: ILogger;
 
-    setupBot(): void;
+    setupBot(): Promise<void>;
     startBot(intents: BitFieldResolvable<IntentsString, number>): Promise<string>;
     stopBot(): Promise<string>;
     getStatus(): BotStatus;

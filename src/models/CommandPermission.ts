@@ -57,7 +57,7 @@ export interface ICommandPermissions {
     permissionRequirements: CommandPermissionRequirementSettings;
     permissionFailReplyType: CommandPermissionFeedbackType;
     getPermissionFailReplyText(commandInputContext: CommandInputContext, msg: Message, interaction: Interaction): string;
-    setupPermissions(bot: IDiscordBot, input: CommandUserInput): void;
+    setupPermissions(bot: IDiscordBot, input: CommandUserInput): Promise<void>;
 }
 
 export enum CommandPermissionResultStatus {

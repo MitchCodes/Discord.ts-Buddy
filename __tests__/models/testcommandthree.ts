@@ -59,7 +59,7 @@ export class EchoCommand implements ICommand, ICommandFactory, ICommandPermissio
     }
     
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    public setupPermissions(bot: IDiscordBot, input: CommandUserInput): void {
+    public async setupPermissions(bot: IDiscordBot, input: CommandUserInput): Promise<void> {
         let anyTextChannelReq: CommandPermissionRequirement = new CommandPermissionRequirement();
         anyTextChannelReq.permissionType = CommandPermissionType.anytextchannel;
 
