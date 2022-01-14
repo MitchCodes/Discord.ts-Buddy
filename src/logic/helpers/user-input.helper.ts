@@ -1,4 +1,4 @@
-import { Guild, GuildMember, StageChannel, TextBasedChannels, TextChannel, VoiceChannel } from "discord.js";
+import { Guild, GuildMember, StageChannel, TextBasedChannel, VoiceChannel } from "discord.js";
 import { CommandInputContext, CommandUserInput } from "../../models/Command";
 
 export class UserInputHelper {
@@ -17,7 +17,7 @@ export class UserInputHelper {
         }
     }
 
-    public getChannel(input: CommandUserInput): TextBasedChannels {
+    public getChannel(input: CommandUserInput): TextBasedChannel {
         if (input.inputContext === CommandInputContext.message) {
             return input.msg?.channel;
         } else if (input.inputContext === CommandInputContext.interaction) {
