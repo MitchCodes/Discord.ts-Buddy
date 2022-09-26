@@ -1,4 +1,4 @@
-import { GuildMember, Message, Permissions, BitFieldResolvable, PermissionString, Interaction } from 'discord.js';
+import { GuildMember, Message, Interaction, ChannelType } from 'discord.js';
 import { CommandInputContext } from '../../models/Command';
 import { ICommandPermissions, CommandPermissionType, CommandPermissionResult, 
         CommandPermissionResultStatus, 
@@ -37,24 +37,6 @@ export class CommandPermissionsService {
         }
 
         return returnResult;
-    }
-
-    public userHasPermissions(guildMember: GuildMember, permissionIdentifier: string): boolean {
-        let permissionInput: string | number | Array<string> = permissionIdentifier;
-        let permissionSplit: string[] = permissionIdentifier.split(',');
-        if (permissionSplit.length > 1) {
-            let permissionsArray: Array<string> = [];
-            for (let permission of permissionSplit) {
-                permissionsArray.push(permission);
-            }
-            permissionInput = permissionsArray;
-        } else if (this.isNumeric(permissionIdentifier)) {
-            permissionInput = Number(permissionIdentifier);
-        }
-
-        let permissions: Permissions = new Permissions((<BitFieldResolvable<PermissionString, bigint>>permissionInput));
-        
-        return guildMember.permissions.has(permissions);
     }
 
     private sortRequirementsByPriority(requirements: CommandPermissionRequirement[]): CommandPermissionRequirement[] {
@@ -104,11 +86,6 @@ export class CommandPermissionsService {
                 break;
             case CommandPermissionType.anytextchannel:
                 if (this.msgIsInTextChannel(inputContext, msg, interaction)) {
-                    return true;
-                }
-                break;
-            case CommandPermissionType.permission:
-                if (this.userHasPermissions(guildMember, requirement.identifier)) {
                     return true;
                 }
                 break;
@@ -175,7 +152,7 @@ export class CommandPermissionsService {
         if (inputContext === CommandInputContext.message) {
             return helper.msgIsInTextChannelById(msg, channelIdentifier);
         } else if (inputContext === CommandInputContext.interaction) {
-            if (interaction.channel && interaction.channel.type === 'GUILD_TEXT') {
+            if (interaction.channel && interaction.channel.type === ChannelType.GuildText) {
                 let identifierLowered: string = channelIdentifier.toLowerCase();
                 
                 if (interaction.channel.name.toLowerCase() === identifierLowered) {
@@ -197,7 +174,7 @@ export class CommandPermissionsService {
         if (inputContext === CommandInputContext.message) {
             return helper.msgIsInTextChannel(msg);
         } else if (inputContext === CommandInputContext.interaction) {
-            if (interaction.channel && interaction.channel.type === 'GUILD_TEXT') {
+            if (interaction.channel && interaction.channel.type === ChannelType.GuildText) {
                 return true;
             }
         }

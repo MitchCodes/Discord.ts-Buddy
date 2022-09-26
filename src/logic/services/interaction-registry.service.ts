@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { APIApplicationCommandOption } from "discord-api-types";
-import { ApplicationCommand, Client, Guild, GuildResolvable, Role, User } from "discord.js";
+import { ApplicationCommand, ApplicationCommandType, Client, ContextMenuCommandBuilder, Guild, GuildResolvable, RESTPostAPIApplicationCommandsJSONBody } from "discord.js";
 import { ILogger } from "tsdatautils-core";
 import { BasicDictionary } from "../../models/BasicDictionary";
 import { CommandInteraction, CommandInteractionMainType, CommandInteractionRegistrationContext, ICommand } from "../../models/Command";
-import { CommandPermissionGrantRevokeType, CommandPermissionRequirement, CommandPermissionRequirementSettings, CommandPermissionType } from "../../models/CommandPermission";
+import { CommandPermissionRequirementSettings } from "../../models/CommandPermission";
 import { BotHelper } from "../helpers/bot.helper";
 import { REST } from '@discordjs/rest';
 import { Routes } from 'discord-api-types/v9';
@@ -13,7 +12,6 @@ export class InteractionRegistrationCommandContext {
     public command: ICommand;
     public commandPermissions: CommandPermissionRequirementSettings;
     public interaction: CommandInteraction;
-    public hasDefaultPermission: boolean;
     public discordApplicationCommand: ApplicationCommand<{ guild: GuildResolvable; }>;
 
     public constructor(command: ICommand, interaction: CommandInteraction, commandPermissions: CommandPermissionRequirementSettings = null) {
@@ -52,9 +50,6 @@ export class InteractionRegistryService {
 
             // Register the slash commands with Discord
             await this.registerInteractionsInApi(clientId, token, globalInteractions, guildInteractions);
-            
-            // Set permissions
-            await this.setInteractionPermissions(client, allGuilds, globalInteractions, guildInteractions);
 
             await this.postRegistration(client, allGuilds, globalInteractions, guildInteractions);
         }
@@ -96,24 +91,11 @@ export class InteractionRegistryService {
     }
 
     private async preRegistrationCalculation(globalInteractions: InteractionRegistrationCommandContext[], guildInteractions: BasicDictionary<InteractionRegistrationCommandContext[]>, allInteractions: InteractionRegistrationCommandContext[]): Promise<void> {
-        for (let command of allInteractions) {
-            this.setCommandDefaultPermission(command);
-        }
-    }
-
-    private setCommandDefaultPermission(command: InteractionRegistrationCommandContext): void {
-        let defaultPermission: boolean = true;
-        if (command.interaction.overridePermissions) {
-            defaultPermission = command.interaction.overridePermissions.hasPermissionByDefault;
-        } else if (command.commandPermissions) {
-            defaultPermission = command.commandPermissions.hasPermissionByDefault;
-        }
-
-        command.hasDefaultPermission = defaultPermission;
+        return;
     }
 
     private async registerInteractionsInApi(clientId: string, token: string, globalInteractions: InteractionRegistrationCommandContext[], guildInteractions: BasicDictionary<InteractionRegistrationCommandContext[]>): Promise<void> {
-        let rest: REST = new REST({ version: '9' }).setToken(token);
+        let rest: REST = new REST({ version: '10' }).setToken(token);
         if (globalInteractions) {
             let shouldUpdate: boolean = true;
             if (this.shouldRegisterCallback) {
@@ -145,13 +127,13 @@ export class InteractionRegistryService {
         this.logger.info('Registering global commands');
 
         try {
-            let interactionBuilderData: { name: string; description: string; options: APIApplicationCommandOption[]; }[] = this.getBuilderData(interactions);
+            let commandsData: RESTPostAPIApplicationCommandsJSONBody[] = this.getCommandsData(interactions);
 
             let InteractionCommandContextDictionary: BasicDictionary<InteractionRegistrationCommandContext> = this.getInteractionDictionaryByName(interactions);
 
             let applicationInteractions: any = await rest.put(
                 Routes.applicationCommands(clientId),
-                { body: interactionBuilderData },
+                { body: commandsData },
             );
 
             if (applicationInteractions && applicationInteractions.length) {
@@ -175,12 +157,12 @@ export class InteractionRegistryService {
         this.logger.info('Registering commands for guild ' + guildId);
 
         try {
-            let interactionBuilderData: { name: string; description: string; options: APIApplicationCommandOption[]; }[] = this.getBuilderData(interactions);
+            let commandsData: RESTPostAPIApplicationCommandsJSONBody[] = this.getCommandsData(interactions);
             let InteractionCommandContextDictionary: BasicDictionary<InteractionRegistrationCommandContext> = this.getInteractionDictionaryByName(interactions);
 
             let applicationInteractions: any = await rest.put(
                 Routes.applicationGuildCommands(clientId, guildId),
-                { body: interactionBuilderData },
+                { body: commandsData },
             )
 
             if (applicationInteractions && applicationInteractions.length) {
@@ -198,47 +180,6 @@ export class InteractionRegistryService {
         }
 
         this.logger.info('Finished registering commands for guild ' + guildId);
-    }
-
-    private async setInteractionPermissions(client: Client, allGuilds: Guild[], globalInteractions: InteractionRegistrationCommandContext[], guildInteractions: BasicDictionary<InteractionRegistrationCommandContext[]>): Promise<void> {
-        let allInteractionsByGuild: BasicDictionary<InteractionRegistrationCommandContext[]> = this.getAllInteractionsByGuildIncGlobal(allGuilds, globalInteractions, guildInteractions);
-        
-        let shouldRegisterGlobal: boolean = true;
-        if (this.shouldRegisterCallback) {
-            shouldRegisterGlobal = await this.shouldRegisterCallback(CommandInteractionRegistrationContext.global, globalInteractions, null);
-        }
-
-        let guildIds: string[] = Object.keys(allInteractionsByGuild);
-        for (let guildId of guildIds) {
-            let guild: Guild = client.guilds.cache.get(guildId);
-            if (guild && allInteractionsByGuild[guildId]) {
-                try {
-                    let guildPermissionUpdates: any[] = [];
-
-                    let guildInteractions: InteractionRegistrationCommandContext[] = allInteractionsByGuild[guildId];
-                    let shouldUpdateGuild: boolean = true;
-                    if (this.shouldRegisterCallback) {
-                        shouldUpdateGuild = await this.shouldRegisterCallback(CommandInteractionRegistrationContext.guildList, guildInteractions, guildId);
-                    }
-                    if (shouldRegisterGlobal || shouldUpdateGuild) {
-                        let discoveredGuildRoles: BasicDictionary<Role> = {};
-                        let discoveredUsers: BasicDictionary<User> = {}
-                        for (let guildInteraction of guildInteractions) {
-                            if (guildInteraction && guildInteraction.discordApplicationCommand) {
-                                let updateObj = await this.getGuildInteractionPermissionUpdate(client, guild, guildInteraction, discoveredGuildRoles, discoveredUsers);
-                                if (updateObj) {
-                                    guildPermissionUpdates.push(updateObj);
-                                }
-                            }
-                        }
-
-                        await guild.commands.permissions.set({ fullPermissions: guildPermissionUpdates });
-                    }
-                } catch (err) {
-                    this.logger.error('Error setting interaction permission for guild ' + guild.id + ' (' + guild.name + '): ' + err);
-                }
-            }
-        }
     }
 
     private async postRegistration(client: Client, allGuilds: Guild[], globalInteractions: InteractionRegistrationCommandContext[], guildInteractions: BasicDictionary<InteractionRegistrationCommandContext[]>): Promise<void> {
@@ -259,106 +200,24 @@ export class InteractionRegistryService {
         }
     }
 
-    private async getGuildInteractionPermissionUpdate(client: Client, guild: Guild, interactionCommandContext: InteractionRegistrationCommandContext, discoveredGuildRoles: BasicDictionary<Role>, discoveredUsers: BasicDictionary<User>): Promise<any> {
-        let returnObj: any = {
-            id: interactionCommandContext.discordApplicationCommand.id,
-            permissions: []
-        };
-
-        let permissionRequirements: CommandPermissionRequirement[] = null;
-        if (interactionCommandContext.interaction.overridePermissions) {
-            permissionRequirements = interactionCommandContext.interaction.overridePermissions.requirements;
-        } else if (interactionCommandContext.commandPermissions) {
-            permissionRequirements = interactionCommandContext.commandPermissions.requirements;
-        }
-
-        if (!permissionRequirements) {
-            return null;
-        }
-
-        let calculatedPermissions: { id: string; type: string; permission: boolean; }[] = [];
-        for (let permissionRequirement of permissionRequirements) {
-            let calculatedPermission: { id: string; type: string; permission: boolean; } = { id: null, type: null, permission: false };
-
-            if (permissionRequirement.successGrantRevokeType !== CommandPermissionGrantRevokeType.none) {
-                if (permissionRequirement.successGrantRevokeType === CommandPermissionGrantRevokeType.grant) {
-                    calculatedPermission.permission = true;
-                } else {
-                    calculatedPermission.permission = false;
-                }
-            } else {
-                // this permission requirement does nothing on success, so not relevant
-                continue;
-            }
-
-            let identifierLowered: string = permissionRequirement.identifier.toLowerCase();
-            if (permissionRequirement.permissionType === CommandPermissionType.role) {
-                if (!discoveredGuildRoles[identifierLowered]) {
-                    let role = guild.roles.cache.find(role => role.name.toLowerCase() === identifierLowered);
-                    if (role) {
-                        discoveredGuildRoles[identifierLowered] = role;
-                    }
-                }
-
-                if (!discoveredGuildRoles[identifierLowered]) {
-                    // couldn't find the role, skip this requirement
-                    continue;
-                }
-
-                calculatedPermission.id = discoveredGuildRoles[identifierLowered].id;
-                calculatedPermission.type = 'ROLE';
-            } else if (permissionRequirement.permissionType === CommandPermissionType.user) {
-                if (!discoveredUsers[identifierLowered]) {
-                    let member = guild.members.cache.find(member => member.user.id.toLowerCase() === identifierLowered || member.user.username.toLowerCase() === identifierLowered || member.displayName.toLowerCase() === identifierLowered);
-                    if (member) {
-                        discoveredUsers[identifierLowered] = member.user;
-                    }
-                }
-
-                if (!discoveredUsers[identifierLowered]) {
-                    // couldn't find the user, skip this requirement
-                    continue;
-                }
-
-                calculatedPermission.id = discoveredUsers[identifierLowered].id;
-                calculatedPermission.type = 'USER';
-            } else {
-                // permission requirement isn't user or role
-                continue;
-            }
-
-            calculatedPermissions.push(calculatedPermission);
-        }
-
-        returnObj.permissions = calculatedPermissions;
-
-        return returnObj;
-    }
-
-    private getBuilderData(interactions: InteractionRegistrationCommandContext[]): { name: string; description: string; options: APIApplicationCommandOption[]; type?: number }[] {
-        let builderData: { name: string; description: string; options: APIApplicationCommandOption[]; default_permission?: boolean; type?: number }[] = [];
+    private getCommandsData(interactions: InteractionRegistrationCommandContext[]): RESTPostAPIApplicationCommandsJSONBody[] {
+        let commandData: RESTPostAPIApplicationCommandsJSONBody[] = [];
 
         for (let interaction of interactions) {
             if (interaction.interaction.mainType === CommandInteractionMainType.slashCommand) {
-                let commandBuilderData = <{ name: string; description: string; options: APIApplicationCommandOption[]; default_permission?: boolean }>interaction.interaction.builder.toJSON();
-                commandBuilderData.default_permission = interaction.hasDefaultPermission;
-                builderData.push(commandBuilderData);
+                commandData.push(interaction.interaction.builder.toJSON());
             } else {
                 if (interaction.interaction.contextMenuMainTypeSettings) {
-                    let commandBuilderData: { name: string; description: string; options: APIApplicationCommandOption[]; default_permission?: boolean; type?: number } = { 
-                        name: interaction.interaction.contextMenuMainTypeSettings.name,
-                        description: '',
-                        options: null,
-                        default_permission: interaction.hasDefaultPermission,
-                        type: interaction.interaction.mainType === CommandInteractionMainType.contextUser ? 2 : 3
-                    };
+                    let contextBuilder: ContextMenuCommandBuilder = new ContextMenuCommandBuilder();
+                    contextBuilder.setName(interaction.interaction.contextMenuMainTypeSettings.name);
+                    contextBuilder.setType(interaction.interaction.mainType === CommandInteractionMainType.contextUser ? ApplicationCommandType.User : ApplicationCommandType.Message);
 
-                    builderData.push(commandBuilderData);
+                    commandData.push(contextBuilder.toJSON());
                 }
             }   
         }
 
-        return builderData;
+        return commandData;
     }
 
     private getInteractionDictionaryByName(InteractionCommandContexts: InteractionRegistrationCommandContext[]): BasicDictionary<InteractionRegistrationCommandContext> {

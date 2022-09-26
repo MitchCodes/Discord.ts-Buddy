@@ -1,4 +1,4 @@
-import { GuildMember, Guild, Role, Message, TextChannel, Collection, Snowflake } from 'discord.js';
+import { GuildMember, Guild, Role, Message, TextChannel, Collection, Snowflake, ChannelType } from 'discord.js';
 
 export class DiscordHelper {
     public getMemberByNickUsernameOrId(guild: Guild, identifier: string): GuildMember {
@@ -136,7 +136,7 @@ export class DiscordHelper {
     }
 
     public msgIsInTextChannel(msg: Message): boolean {
-        if (msg.channel.type === "GUILD_TEXT") {
+        if (msg.channel.type === ChannelType.GuildText) {
             return true;
         }
 
@@ -145,7 +145,7 @@ export class DiscordHelper {
 
     public msgIsInTextChannelById(msg: Message, identifier: string): boolean {
         let identifierLowered: string = identifier.toLowerCase();
-        if (msg.channel.type === "GUILD_TEXT") {
+        if (msg.channel.type === ChannelType.GuildText) {
             let textChannel: TextChannel = <TextChannel>msg.channel;
             if (textChannel.name.toLowerCase() === identifierLowered) {
                 return true;

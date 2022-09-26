@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { CommandInteraction, CommandInteractionOption, Guild } from "discord.js";
+import { ApplicationCommandOptionType, CommandInteraction, CommandInteractionOption, Guild } from "discord.js";
 import { BasicDictionary } from "../../models/BasicDictionary";
 import { CommandInputContext, CommandUserInput } from "../../models/Command";
 import { InputParseResult, InputParseValidation, InputParseValidationType } from "../../models/CommandInputParse";
@@ -213,7 +213,7 @@ export class CommandUserInputParserService {
     private parseInteractionInputOptions(result: InputParseResult, options: CommandInteractionOption[] | readonly CommandInteractionOption[], userInput: CommandUserInput, structure: CommandInputStructure, interaction: CommandInteraction): void {
         let subCommand: CommandInteractionOption = null;
         for (let option of options) {
-            if (option.type === 'SUB_COMMAND' || option.type === 'SUB_COMMAND_GROUP') {
+            if (option.type === ApplicationCommandOptionType.Subcommand || option.type === ApplicationCommandOptionType.SubcommandGroup) {
                 subCommand = option;
                 break;
             }
@@ -226,7 +226,7 @@ export class CommandUserInputParserService {
             }
         } else {
             for (let option of options) {
-                if (option.type !== 'SUB_COMMAND' && option.type !== 'SUB_COMMAND_GROUP') {
+                if (option.type !== ApplicationCommandOptionType.Subcommand && option.type !== ApplicationCommandOptionType.SubcommandGroup) {
                     result.values[option.name] = option.value;
                 }
             }

@@ -1,10 +1,15 @@
-import { BaseMessageComponentOptions, BufferResolvable, FileOptions, MessageActionRow, MessageActionRowOptions, MessageAttachment, MessageEmbed, MessageMentionOptions } from "discord.js";
+import { ActionRowData, APIActionRowComponent, APIAttachment, APIEmbed, APIMessageActionRowComponent, Attachment, AttachmentBuilder, AttachmentPayload, BufferResolvable, JSONEncodable, MessageActionRowComponentBuilder, MessageActionRowComponentData, MessageMentionOptions } from "discord.js";
+import { Stream } from "stream";
 
 export class CommandReplyOptions {
-    public embeds?: MessageEmbed[] = [];
+    public embeds?: APIEmbed[] = [];
     public content?: string = '';
-    public files?: FileOptions[] | BufferResolvable[] | MessageAttachment[];
-    public interactionComponents?: (MessageActionRow | (Required<BaseMessageComponentOptions> & MessageActionRowOptions))[];
+    public files?: (BufferResolvable | Stream | JSONEncodable<APIAttachment> | Attachment | AttachmentBuilder | AttachmentPayload)[];
+    public interactionComponents?: (    
+        | JSONEncodable<APIActionRowComponent<APIMessageActionRowComponent>>
+        | ActionRowData<MessageActionRowComponentData | MessageActionRowComponentBuilder>
+        | APIActionRowComponent<APIMessageActionRowComponent>
+        )[];
     public mentions?: MessageMentionOptions;
     public ephemeral?: boolean = false;
 

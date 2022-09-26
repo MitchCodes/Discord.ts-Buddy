@@ -3,7 +3,7 @@ import { IDiscordBot, BotStatus, IAutoManagedBot } from '../models/DiscordBot';
 import { BotRestartSettings } from '../models/BotRestartSettings';
 // tslint:disable-next-line:no-submodule-imports
 import * as Rx from 'rxjs/Rx';
-import { BitFieldResolvable, IntentsString } from 'discord.js';
+import { BitFieldResolvable } from 'discord.js';
 import { ILogger } from 'tsdatautils-core';
 
 export class BotManager<T extends IDiscordBot & IAutoManagedBot> {
@@ -22,7 +22,7 @@ export class BotManager<T extends IDiscordBot & IAutoManagedBot> {
     }
 
     /// This function assumes success. We are letting this manager handle the stopping and starting of bots.
-    public startBot(isRestart: boolean = false, intents: BitFieldResolvable<IntentsString, number> = null): void {
+    public startBot(isRestart: boolean = false, intents: BitFieldResolvable<string, number> = null): void {
         if (this.bot.getStatus() === BotStatus.active) {
             this.logger.info('Bot \'' + this.bot.name + '\' is already logged in and there is no point to starting it.');
 

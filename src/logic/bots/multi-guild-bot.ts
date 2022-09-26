@@ -4,7 +4,7 @@ import { Provider } from 'nconf';
 import { IDiscordBot, BotStatus, IAutoManagedBot } from '../../models/DiscordBot';
 import { ICommandPermissions, CommandPermissionFeedbackType, CommandPermissionResult, 
         CommandPermissionResultStatus } from '../../models/CommandPermission';
-import { BitFieldResolvable, Client, Guild, Intents, IntentsString, Interaction, Message, TextChannel } from 'discord.js';
+import { Client, Guild, Interaction, Message, TextChannel, GatewayIntentBits } from 'discord.js';
 
 // tslint:disable-next-line:no-submodule-imports
 import * as Rx from 'rxjs/Rx';
@@ -50,17 +50,17 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         this.subscribeToSubjects();
     }
 
-    public async startBot(intents: BitFieldResolvable<IntentsString, number> = null): Promise<string> {
+    public async startBot(intents: GatewayIntentBits[] = null): Promise<string> {
         if (this.botToken === '') {
             this.botError('No token found');
             throw 'No token found';
         }
 
         if (!intents) {
-            intents = [Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_VOICE_STATES,
-                Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
-                Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.DIRECT_MESSAGE_REACTIONS, Intents.FLAGS.DIRECT_MESSAGE_TYPING,
-                Intents.FLAGS.GUILD_SCHEDULED_EVENTS, Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS, Intents.FLAGS.GUILD_INVITES];
+            intents = [GatewayIntentBits.GuildMembers, GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates,
+                GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMessageReactions,
+                GatewayIntentBits.DirectMessages, GatewayIntentBits.DirectMessageReactions, GatewayIntentBits.DirectMessageTyping,
+                GatewayIntentBits.GuildScheduledEvents, GatewayIntentBits.GuildEmojisAndStickers, GatewayIntentBits.GuildInvites];
         }
 
         this.botClient = new Client({ intents: intents });
