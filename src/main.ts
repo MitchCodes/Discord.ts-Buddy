@@ -37,5 +37,6 @@ export { HashService } from './logic/services/hash.service';
 export { SoundService } from './logic/services/sound.service';
 
 // Commands
+export { InteractionCommand } from './logic/commands/interaction.command';
 export { CommandMessageParser } from './logic/command.logic';
 export { ICommandMessageMatchFactory, PrefixedMessageMatchFactory, ExactMessageMatchFactory, StartsWithMessageMatchFactory } from './logic/factories/commandmessagematch.factory';
