@@ -37,12 +37,6 @@ export class TestCommand implements ICommand, ICommandFactory, ICommandPermissio
         });
         customFailReq.successGrantRevokeType = CommandPermissionGrantRevokeType.grant;
 
-        let permissionReq: CommandPermissionRequirement = new CommandPermissionRequirement();
-        permissionReq.permissionType = CommandPermissionType.permission;
-        permissionReq.identifier = 'ADMINISTRATOR';
-        permissionReq.failGrantRevokeType = CommandPermissionGrantRevokeType.revoke;
-
-
         let anyBizarreReq: CommandPermissionRequirement = new CommandPermissionRequirement();
         anyBizarreReq.permissionType = CommandPermissionType.textchannel;
         anyBizarreReq.identifier = 'kjahsdkjshdskjhd';
@@ -56,7 +50,6 @@ export class TestCommand implements ICommand, ICommandFactory, ICommandPermissio
         this.permissionRequirements.requirements.push(anyTextChannelReq);
         this.permissionRequirements.requirements.push(textChannelReq);
         this.permissionRequirements.requirements.push(customReq);
-        this.permissionRequirements.requirements.push(permissionReq);
 
         this.permissionRequirements.requirements.push(anyBizarreReq);
         this.permissionRequirements.requirements.push(anyTextForAnyReq);

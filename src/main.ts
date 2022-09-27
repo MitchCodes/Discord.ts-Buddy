@@ -22,9 +22,6 @@ export { BotHelper } from './logic/helpers/bot.helper';
 export { UserInputHelper } from './logic/helpers/user-input.helper';
 export { PromiseHelper } from './logic/helpers/promise.helper';
 
-// Builders
-export { CommandInputBuilder, CommandInputOptionBuilder, CommandInputSubCommandBuilder, CommandInputSubCommandGroupBuilder } from './logic/builders/command-input.builder';
-
 // Bots
 export { BotManager } from './logic/botmanager.logic';
 export { MultiGuildBot } from './logic/bots/multi-guild-bot';
@@ -35,12 +32,10 @@ export { CommandPermissionsService } from './logic/services/permissions.service'
 export { InteractionRegistrationCommandContext } from './logic/services/interaction-registry.service';
 export { CommandReplyService } from './logic/services/command-reply.service';
 export { CommandSimpleReplyService } from './logic/services/command-simplereply.service';
-export { CommandUserInputParserService } from './logic/services/command-user-input-parser.service';
 export { FileObjectService } from './logic/services/file-object.service';
 export { HashService } from './logic/services/hash.service';
 export { SoundService } from './logic/services/sound.service';
 
 // Commands
-export { InteractionHybridCommand } from './logic/commands/interaction-hybrid.command';
 export { CommandMessageParser } from './logic/command.logic';
 export { ICommandMessageMatchFactory, PrefixedMessageMatchFactory, ExactMessageMatchFactory, StartsWithMessageMatchFactory } from './logic/factories/commandmessagematch.factory';

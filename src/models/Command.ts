@@ -1,5 +1,4 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
-import { Interaction, Message } from 'discord.js';
+import { Interaction, Message, SlashCommandBuilder } from 'discord.js';
 import { Provider } from 'nconf';
 import { ILogger } from 'tsdatautils-core';
 import { CommandPermissionRequirementSettings } from './CommandPermission';
