@@ -10,7 +10,7 @@ import { CommandInputBuilder } from "../builders/command-input.builder";
 import { CommandSimpleReplyService } from "../services/command-simplereply.service";
 import { CommandUserInputParserService } from "../services/command-user-input-parser.service";
 
-export abstract class InteractionCommand implements ICommand, ICommandFactory, ICommandPermissions, ICommandConfig, ICommandLogger {
+export abstract class InteractionHybridCommand implements ICommand, ICommandFactory, ICommandPermissions, ICommandConfig, ICommandLogger {
     public configProvider: Provider;
     public logger: ILogger;   
     public commandName: string;
