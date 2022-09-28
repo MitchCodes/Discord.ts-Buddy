@@ -1,9 +1,9 @@
-import { Interaction, RESTPostAPIApplicationCommandsJSONBody, SlashCommandBuilder } from "discord.js";
+import { Interaction, RESTPostAPIApplicationCommandsJSONBody } from "discord.js";
 import { Provider } from "nconf";
 import { ILogger } from "tsdatautils-core";
 import { CommandInputContext, CommandInputSettings, CommandInteraction, CommandInteractionRegistrationContext, CommandInteractionSettings, CommandMatchingSettings, CommandMatchingType, CommandResult, CommandResultStatus, CommandUserInput, ICommand, ICommandConfig, ICommandFactory, ICommandLogger, ICommandResult } from "../../models/Command";
 import { IDiscordBot } from "../../models/DiscordBot";
-import { CommandSimpleReplyService } from "../services/command-simplereply.service";
+import { CommandReplyService } from "../services/command-reply.service";
 
 export abstract class InteractionCommand implements ICommand, ICommandFactory, ICommandConfig, ICommandLogger {
     public configProvider: Provider;
@@ -25,7 +25,7 @@ export abstract class InteractionCommand implements ICommand, ICommandFactory, I
 
     abstract makeCommand(): ICommand;
     abstract getCommandBuilder(): RESTPostAPIApplicationCommandsJSONBody;
-    abstract executeInteraction(bot: IDiscordBot, input: Interaction, replyService: CommandSimpleReplyService): Promise<ICommandResult>;
+    abstract executeInteraction(bot: IDiscordBot, input: Interaction, replyService: CommandReplyService): Promise<ICommandResult>;
 
     public async setupInputSettings(bot: IDiscordBot): Promise<void> {
         let commandInteractionSettings: CommandInteractionSettings = new CommandInteractionSettings();
@@ -49,7 +49,7 @@ export abstract class InteractionCommand implements ICommand, ICommandFactory, I
     }
 
     public async execute(bot: IDiscordBot, input: CommandUserInput): Promise<ICommandResult> {
-        let replyService: CommandSimpleReplyService = new CommandSimpleReplyService();
+        let replyService: CommandReplyService = new CommandReplyService();
 
         if (this.warnOldCommand && input.inputContext === CommandInputContext.message && input.msg) {
             let message: string = 'Please use the slash Discord command style of command. Use /' + this.inputSettings.interactionSettings.interactions[0].applicationCommand.name + ' instead.';
