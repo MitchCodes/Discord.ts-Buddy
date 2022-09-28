@@ -1,14 +1,13 @@
-import { ApplicationCommandOptionType, CommandInteraction, CommandInteractionOption } from "discord.js";
-import { CommandUserInput } from "../../models/Command";
+import { ApplicationCommandOptionType, CacheType, CommandInteraction, CommandInteractionOption, Interaction } from "discord.js";
 import { InputParseResult } from "../../models/CommandInputParse";
 
 export class InteractionInputParserService {
-    public async parseInteractionInput(userInput: CommandUserInput): Promise<InputParseResult> {
+    public async parseInteractionInput(input: Interaction<CacheType>): Promise<InputParseResult> {
         let result: InputParseResult = new InputParseResult();
 
         let interaction: CommandInteraction = null;
-        if (userInput.interaction && userInput.interaction.isCommand()) {
-            interaction = userInput.interaction;
+        if (input && input.isCommand()) {
+            interaction = input;
         }
 
         if (interaction) {
@@ -17,14 +16,14 @@ export class InteractionInputParserService {
 
             let options: readonly CommandInteractionOption[] = interaction.options.data;
             if (options && options.length > 0) {
-                this.parseInteractionInputOptions(result, options, userInput, interaction);
+                this.parseInteractionInputOptions(result, options, interaction);
             }
         }
 
         return result;
     }
 
-    private parseInteractionInputOptions(result: InputParseResult, options: CommandInteractionOption[] | readonly CommandInteractionOption[], userInput: CommandUserInput, interaction: CommandInteraction): void {
+    private parseInteractionInputOptions(result: InputParseResult, options: CommandInteractionOption[] | readonly CommandInteractionOption[], interaction: CommandInteraction): void {
         let subCommand: CommandInteractionOption = null;
         for (let option of options) {
             if (option.type === ApplicationCommandOptionType.Subcommand || option.type === ApplicationCommandOptionType.SubcommandGroup) {
@@ -36,7 +35,7 @@ export class InteractionInputParserService {
         if (subCommand) {
             result.commandTree.push(subCommand.name);
             if (subCommand.options && subCommand.options.length > 0) {
-                this.parseInteractionInputOptions(result, subCommand.options, userInput, interaction);
+                this.parseInteractionInputOptions(result, subCommand.options, interaction);
             }
         } else {
             for (let option of options) {
