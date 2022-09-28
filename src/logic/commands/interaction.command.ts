@@ -2,8 +2,10 @@ import { Interaction, RESTPostAPIApplicationCommandsJSONBody } from "discord.js"
 import { Provider } from "nconf";
 import { ILogger } from "tsdatautils-core";
 import { CommandInputContext, CommandInputSettings, CommandInteraction, CommandInteractionRegistrationContext, CommandInteractionSettings, CommandMatchingSettings, CommandMatchingType, CommandResult, CommandResultStatus, CommandUserInput, ICommand, ICommandConfig, ICommandFactory, ICommandLogger, ICommandResult } from "../../models/Command";
+import { InputParseResult } from "../../models/CommandInputParse";
 import { IDiscordBot } from "../../models/DiscordBot";
 import { CommandReplyService } from "../services/command-reply.service";
+import { InteractionInputParserService } from "../services/interaction-input-parser.service";
 
 export abstract class InteractionCommand implements ICommand, ICommandFactory, ICommandConfig, ICommandLogger {
     public configProvider: Provider;
@@ -25,7 +27,7 @@ export abstract class InteractionCommand implements ICommand, ICommandFactory, I
 
     abstract makeCommand(): ICommand;
     abstract getCommandBuilder(): RESTPostAPIApplicationCommandsJSONBody;
-    abstract executeInteraction(bot: IDiscordBot, input: Interaction, replyService: CommandReplyService): Promise<ICommandResult>;
+    abstract executeInteraction(bot: IDiscordBot, input: Interaction, inputParseResult: InputParseResult, replyService: CommandReplyService): Promise<ICommandResult>;
 
     public async setupInputSettings(bot: IDiscordBot): Promise<void> {
         let commandInteractionSettings: CommandInteractionSettings = new CommandInteractionSettings();
@@ -65,6 +67,9 @@ export abstract class InteractionCommand implements ICommand, ICommandFactory, I
             await replyService.deferReplyHybrid(input);
         }
 
-        return await this.executeInteraction(bot, input.interaction, replyService);
+        let inputParserService: InteractionInputParserService = new InteractionInputParserService();
+        let inputParseResult: InputParseResult = await inputParserService.parseInteractionInput(input.interaction);
+
+        return await this.executeInteraction(bot, input.interaction, inputParseResult, replyService);
     }
 }
