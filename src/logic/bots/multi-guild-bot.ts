@@ -135,27 +135,12 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
             
             let anyDifferent: boolean = false;
             for (let interactionContext of interactions) {
-                if (!interactionContext.interaction) {
+                if (!interactionContext.interaction || !interactionContext.interaction.applicationCommand) {
                     continue;
                 }
 
-                let interactionJson: string = null;
-                let fileName: string = null;
-                if (interactionContext.interaction.mainType === CommandInteractionMainType.slashCommand) {
-                    if (!interactionContext.interaction.applicationCommand) {
-                        continue;
-                    }
-
-                    interactionJson = JSON.stringify(interactionContext.interaction.applicationCommand);
-                    fileName = interactionContext.command.commandName + '_' + interactionContext.interaction.applicationCommand.name;
-                } else {
-                    if (!interactionContext.interaction.contextMenuMainTypeSettings) {
-                        continue;
-                    }
-
-                    interactionJson = JSON.stringify(interactionContext.interaction.contextMenuMainTypeSettings);
-                    fileName = interactionContext.command.commandName + '_' + interactionContext.interaction.contextMenuMainTypeSettings.name;
-                }
+                let interactionJson: string = JSON.stringify(interactionContext.interaction.applicationCommand);
+                let fileName: string = interactionContext.command.commandName + '_' + interactionContext.interaction.applicationCommand.name;
         
                 if (context !== CommandInteractionRegistrationContext.global && guildId) {
                     fileName = guildId + '_' + fileName;
@@ -188,23 +173,12 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
             let hashService: HashService = new HashService();
             
             for (let interactionContext of interactions) {
-                let interactionJson: string = null;
-                let fileName: string = null;
-                if (interactionContext.interaction.mainType === CommandInteractionMainType.slashCommand) {
-                    if (!interactionContext.interaction.applicationCommand) {
-                        continue;
-                    }
-
-                    interactionJson = JSON.stringify(interactionContext.interaction.applicationCommand);
-                    fileName = interactionContext.command.commandName + '_' + interactionContext.interaction.applicationCommand.name;
-                } else {
-                    if (!interactionContext.interaction.contextMenuMainTypeSettings) {
-                        continue;
-                    }
-
-                    interactionJson = JSON.stringify(interactionContext.interaction.contextMenuMainTypeSettings);
-                    fileName = interactionContext.command.commandName + '_' + interactionContext.interaction.contextMenuMainTypeSettings.name;
+                if (!interactionContext.interaction || !interactionContext.interaction.applicationCommand) {
+                    continue;
                 }
+
+                let interactionJson: string = JSON.stringify(interactionContext.interaction.applicationCommand);
+                let fileName: string = interactionContext.command.commandName + '_' + interactionContext.interaction.applicationCommand.name;
 
                 if (context !== CommandInteractionRegistrationContext.global && guildId) {
                     fileName = guildId + '_' + fileName;
@@ -221,7 +195,6 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         }
     }
     
-    // tslint:disable-next-line:no-empty
     protected setupCommandPreExecute(command: ICommand): void {
     }
 

@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandInputSettings, ICommandFactory, CommandMatchingSettings, CommandMatchingType, CommandUserInput, CommandInteractionSettings, CommandInteraction, CommandInteractionRegistrationContext, CommandInteractionMainType, CommandInteractionContextTypeSettings } from '../../src/models/Command';
+/*
+import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandInputSettings, ICommandFactory, CommandMatchingSettings, CommandUserInput, CommandInteractionSettings, CommandInteraction, CommandInteractionRegistrationContext } from '../../src/models/Command';
 import { Message, Interaction } from 'discord.js';
 import { ICommandPermissions, CommandPermissionRequirementSettings, CommandPermissionFeedbackType, 
     CommandPermissionType, CommandPermissionRequirement, CommandPermissionGrantRevokeType } from '../../src/models/CommandPermission';
 import { IDiscordBot } from '../../src/models/DiscordBot';
-import { SlashCommandBuilder } from '@discordjs/builders';
-import { CommandInputBuilder, CommandInputStructureOptionType, CommandReplyService } from '../../src/main';
+import { CommandReplyService } from '../../src/main';
 
 export class EchoCommand implements ICommand, ICommandFactory, ICommandPermissions {
     public commandName: string = 'Echo';
@@ -41,6 +41,7 @@ export class EchoCommand implements ICommand, ICommandFactory, ICommandPermissio
         let mainInteraction: CommandInteraction = new CommandInteraction(CommandInteractionRegistrationContext.global, mainSlashCommandBuilder);
         commandInteractionSettings.interactions.push(mainInteraction);
 
+        /*
         let userInteraction: CommandInteraction = new CommandInteraction(CommandInteractionRegistrationContext.global);
         userInteraction.mainType = CommandInteractionMainType.contextUser;
         userInteraction.contextMenuMainTypeSettings = new CommandInteractionContextTypeSettings();
@@ -51,10 +52,9 @@ export class EchoCommand implements ICommand, ICommandFactory, ICommandPermissio
         messageInteraction.mainType = CommandInteractionMainType.contextMessage;
         messageInteraction.contextMenuMainTypeSettings = new CommandInteractionContextTypeSettings();
         messageInteraction.contextMenuMainTypeSettings.name = 'Echo Message';
-        messageInteraction.overridePermissions = new CommandPermissionRequirementSettings();
-        messageInteraction.overridePermissions.hasPermissionByDefault = true;
         commandInteractionSettings.interactions.push(messageInteraction);
-
+        */
+/*
         this.inputSettings = new CommandInputSettings(commandMessageSettings, commandInteractionSettings);
     }
     
@@ -90,14 +90,15 @@ export class EchoCommand implements ICommand, ICommandFactory, ICommandPermissio
     public async execute(bot: IDiscordBot, input: CommandUserInput): Promise<ICommandResult> {
             let result: CommandResult = new CommandResult();
             let replyService: CommandReplyService = new CommandReplyService();
-            await replyService.deferReply(input);
+            await replyService.deferReplyHybrid(input);
 
-            await replyService.replyAfterDefer(input, { content: 'boop', ephemeral: true });
+            await replyService.replyAfterDeferHybrid(input, { content: 'boop', ephemeral: true });
 
-            await replyService.followUp(input, { content: 'Private follow-up!', ephemeral: true });
+            await replyService.followUpHybrid(input, { content: 'Private follow-up!', ephemeral: true });
 
             result.status = CommandResultStatus.success;
 
             return result;
     }
 }
+*/

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ApplicationCommand, ApplicationCommandType, Client, ContextMenuCommandBuilder, Guild, GuildResolvable, RESTPostAPIApplicationCommandsJSONBody } from "discord.js";
+import { ApplicationCommandType, Client, ContextMenuCommandBuilder, Guild, RESTPostAPIApplicationCommandsJSONBody } from "discord.js";
 import { ILogger } from "tsdatautils-core";
 import { BasicDictionary } from "../../models/BasicDictionary";
 import { CommandInteraction, CommandInteractionMainType, CommandInteractionRegistrationContext, ICommand } from "../../models/Command";
@@ -10,14 +10,11 @@ import { Routes } from 'discord-api-types/v9';
 
 export class InteractionRegistrationCommandContext {
     public command: ICommand;
-    public commandPermissions: CommandPermissionRequirementSettings;
     public interaction: CommandInteraction;
-    public discordApplicationCommand: ApplicationCommand<{ guild: GuildResolvable; }>;
 
-    public constructor(command: ICommand, interaction: CommandInteraction, commandPermissions: CommandPermissionRequirementSettings = null) {
+    public constructor(command: ICommand, interaction: CommandInteraction) {
         this.command = command;
         this.interaction = interaction;
-        this.commandPermissions = commandPermissions;
     }
 }
 
@@ -67,7 +64,7 @@ export class InteractionRegistryService {
     
                 for (let interaction of command.inputSettings.interactionSettings.interactions) {
                     if (interaction) {
-                        let interactionCommandContext: InteractionRegistrationCommandContext = new InteractionRegistrationCommandContext(command, interaction, commandPermissions);
+                        let interactionCommandContext: InteractionRegistrationCommandContext = new InteractionRegistrationCommandContext(command, interaction);
                         
                         if (interaction.registrationContext === CommandInteractionRegistrationContext.global) {
                             globalInteractions.push(interactionCommandContext);
@@ -129,23 +126,10 @@ export class InteractionRegistryService {
         try {
             let commandsData: RESTPostAPIApplicationCommandsJSONBody[] = this.getCommandsData(interactions);
 
-            let InteractionCommandContextDictionary: BasicDictionary<InteractionRegistrationCommandContext> = this.getInteractionDictionaryByName(interactions);
-
-            let applicationInteractions: any = await rest.put(
+            await rest.put(
                 Routes.applicationCommands(clientId),
                 { body: commandsData },
             );
-
-            if (applicationInteractions && applicationInteractions.length) {
-                for (let applicationCommandAny of applicationInteractions) {
-                    let applicationCommand: ApplicationCommand<{ guild: GuildResolvable; }> = <ApplicationCommand<{ guild: GuildResolvable; }>>applicationCommandAny;
-                    if (applicationCommand && applicationCommand.name) {
-                        if (InteractionCommandContextDictionary[applicationCommand.name]) {
-                            InteractionCommandContextDictionary[applicationCommand.name].discordApplicationCommand = applicationCommand;
-                        }
-                    }
-                }
-            }
         } catch (err) {
             this.logger.error('Error registering global commands: ' + err);
         }
@@ -158,23 +142,11 @@ export class InteractionRegistryService {
 
         try {
             let commandsData: RESTPostAPIApplicationCommandsJSONBody[] = this.getCommandsData(interactions);
-            let InteractionCommandContextDictionary: BasicDictionary<InteractionRegistrationCommandContext> = this.getInteractionDictionaryByName(interactions);
 
-            let applicationInteractions: any = await rest.put(
+            await rest.put(
                 Routes.applicationGuildCommands(clientId, guildId),
                 { body: commandsData },
             )
-
-            if (applicationInteractions && applicationInteractions.length) {
-                for (let applicationCommandAny of applicationInteractions) {
-                    let applicationCommand: ApplicationCommand<{ guild: GuildResolvable; }> = <ApplicationCommand<{ guild: GuildResolvable; }>>applicationCommandAny;
-                    if (applicationCommand && applicationCommand.name) {
-                        if (InteractionCommandContextDictionary[applicationCommand.name]) {
-                            InteractionCommandContextDictionary[applicationCommand.name].discordApplicationCommand = applicationCommand;
-                        }
-                    }
-                }
-            }
         } catch (err) {
             this.logger.error('Error registering guild commands for guild ' + guildId + ': ' + err);
         }
@@ -204,36 +176,12 @@ export class InteractionRegistryService {
         let commandData: RESTPostAPIApplicationCommandsJSONBody[] = [];
 
         for (let interaction of interactions) {
-            if (interaction.interaction.mainType === CommandInteractionMainType.slashCommand) {
+            if (interaction.interaction.applicationCommand) {
                 commandData.push(interaction.interaction.applicationCommand);
-            } else {
-                if (interaction.interaction.contextMenuMainTypeSettings) {
-                    let contextBuilder: ContextMenuCommandBuilder = new ContextMenuCommandBuilder();
-                    contextBuilder.setName(interaction.interaction.contextMenuMainTypeSettings.name);
-                    contextBuilder.setType(interaction.interaction.mainType === CommandInteractionMainType.contextUser ? ApplicationCommandType.User : ApplicationCommandType.Message);
-
-                    commandData.push(contextBuilder.toJSON());
-                }
-            }   
+            } 
         }
 
         return commandData;
-    }
-
-    private getInteractionDictionaryByName(InteractionCommandContexts: InteractionRegistrationCommandContext[]): BasicDictionary<InteractionRegistrationCommandContext> {
-        let returnDictionary: BasicDictionary<InteractionRegistrationCommandContext> = {};
-
-        for (let interactionCommandContext of InteractionCommandContexts) {
-            if (interactionCommandContext.interaction.mainType === CommandInteractionMainType.slashCommand) {
-                returnDictionary[interactionCommandContext.interaction.applicationCommand.name] = interactionCommandContext;
-            } else {
-                if (interactionCommandContext.interaction.contextMenuMainTypeSettings) {
-                    returnDictionary[interactionCommandContext.interaction.contextMenuMainTypeSettings.name] = interactionCommandContext;
-                }
-            }
-        }
-
-        return returnDictionary;
     }
 
     private getAllInteractionsByGuildIncGlobal(allGuilds: Guild[], globalInteractions: InteractionRegistrationCommandContext[], guildInteractions: BasicDictionary<InteractionRegistrationCommandContext[]>): BasicDictionary<InteractionRegistrationCommandContext[]> {

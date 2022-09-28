@@ -105,13 +105,6 @@ export class CommandInteractionParser {
                                     continue;
                                 }
                             }
-
-                            if (interaction.contextMenuMainTypeSettings && interaction.contextMenuMainTypeSettings.name) {
-                                if (interactionAny.commandName === interaction.contextMenuMainTypeSettings.name) {
-                                    commands.push(comm);
-                                    continue;
-                                }
-                            }
                         }
                     }
                 }

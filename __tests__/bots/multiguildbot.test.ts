@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Logger, createLogger, transports } from 'winston';
 import * as nconf from 'nconf';
-import { Guild, VoiceChannel, TextChannel } from 'discord.js';
+import { Guild, VoiceChannel, TextChannel, ChannelType } from 'discord.js';
 import { MultiGuildBot } from '../../src/logic/bots/multi-guild-bot';
 import { TestBot } from './testbot';
 import { WinstonLogger } from 'tsdatautils-core';
@@ -82,7 +82,7 @@ describe('multi-guild-bot tests', () => {
     
                     if (mainBotTestGuild !== null && mainBotTestGuild !== undefined) {
                         for (let channel of mainBotTestGuild.channels.cache) {
-                            if (channel[1].name === voiceChannelName && channel[1].type === 'GUILD_VOICE') {
+                            if (channel[1].name === voiceChannelName && channel[1].type === ChannelType.GuildVoice) {
                                 mainBotVoiceChannel = <VoiceChannel>channel[1];
                             }
                         }
@@ -147,7 +147,7 @@ describe('multi-guild-bot tests', () => {
 
     test('can send message', (finish) => {
         for (let channel of [...secondBotTestGuild.channels.cache.values()]) {
-            if (channel.type === 'GUILD_TEXT' && channel.name === 'botcommands') {
+            if (channel.type === ChannelType.GuildText && channel.name === 'botcommands') {
                 (<TextChannel>channel).send('!ping');
                 finish();
                 break;

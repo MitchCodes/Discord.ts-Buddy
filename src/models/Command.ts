@@ -1,7 +1,6 @@
-import { Interaction, Message, RESTPostAPIApplicationCommandsJSONBody, SlashCommandBuilder } from 'discord.js';
+import { Interaction, Message, RESTPostAPIApplicationCommandsJSONBody } from 'discord.js';
 import { Provider } from 'nconf';
 import { ILogger } from 'tsdatautils-core';
-import { CommandPermissionRequirementSettings } from './CommandPermission';
 import { IDiscordBot } from './DiscordBot';
 
 export enum CommandResultStatus {
@@ -135,22 +134,17 @@ export class CommandInteractionContextTypeSettings {
 }
 
 export class CommandInteraction {
-    public mainType: CommandInteractionMainType = CommandInteractionMainType.slashCommand;
     public registrationContext: CommandInteractionRegistrationContext = CommandInteractionRegistrationContext.allGuilds;
     public registrationGuilds: string[] = [];
     public applicationCommand: RESTPostAPIApplicationCommandsJSONBody;
-    public contextMenuMainTypeSettings: CommandInteractionContextTypeSettings = null;
-    public overridePermissions: CommandPermissionRequirementSettings;
 
     public constructor(registrationContext: CommandInteractionRegistrationContext = CommandInteractionRegistrationContext.allGuilds, 
         applicationCommand: RESTPostAPIApplicationCommandsJSONBody = null,
-        registrationGuilds: string[] = [],
-        overridePermissions: CommandPermissionRequirementSettings = null) {
+        registrationGuilds: string[] = []) {
 
         this.registrationContext = registrationContext;
         this.applicationCommand = applicationCommand;
         this.registrationGuilds = registrationGuilds;
-        this.overridePermissions = overridePermissions;
     }
 }
 
