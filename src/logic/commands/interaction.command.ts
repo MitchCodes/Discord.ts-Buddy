@@ -53,7 +53,7 @@ export abstract class InteractionCommand implements ICommand, ICommandFactory, I
 
         if (this.warnOldCommand && input.inputContext === CommandInputContext.message && input.msg) {
             let message: string = 'Please use the slash Discord command style of command. Use /' + this.inputSettings.interactionSettings.interactions[0].applicationCommand.name + ' instead.';
-            await replyService.reply(input, { content: message });
+            await replyService.replyHybrid(input, { content: message });
             return new CommandResult(CommandResultStatus.success);
         }
 
@@ -62,7 +62,7 @@ export abstract class InteractionCommand implements ICommand, ICommandFactory, I
         }
 
         if (this.deferReply) {
-            await replyService.deferReply(input);
+            await replyService.deferReplyHybrid(input);
         }
 
         return await this.executeInteraction(bot, input.interaction, replyService);
