@@ -11,8 +11,7 @@ export { IKeyedCollection, KeyedCollection, GuildCollection } from './models/Gui
 export { ErrorWithCode, GenericErrorCodes } from './models/Errors';
 export { BasicDictionary } from './models/BasicDictionary';
 export { CommandReplyOptions, CommandReplyStateOptions } from './models/CommandReply';
-export { CommandInputStructure, CommandInputStructureOption, CommandInputStructureOptionType } from './models/CommandInputStructure';
-export { InputParseResult, InputParseValidationType, InputParseValidation } from './models/CommandInputParse';
+export { InputParseResult } from './models/CommandInputParse';
 
 // Helpers
 export { DiscordHelper } from './logic/helpers/discord.helper';
@@ -35,6 +34,7 @@ export { CommandSimpleReplyService } from './logic/services/command-simplereply.
 export { FileObjectService } from './logic/services/file-object.service';
 export { HashService } from './logic/services/hash.service';
 export { SoundService } from './logic/services/sound.service';
+export { InteractionInputParserService } from './logic/services/interaction-input-parser.service';
 
 // Commands
 export { InteractionCommand } from './logic/commands/interaction.command';
