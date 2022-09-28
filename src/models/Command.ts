@@ -1,4 +1,4 @@
-import { Interaction, Message, SlashCommandBuilder } from 'discord.js';
+import { Interaction, Message, RESTPostAPIApplicationCommandsJSONBody, SlashCommandBuilder } from 'discord.js';
 import { Provider } from 'nconf';
 import { ILogger } from 'tsdatautils-core';
 import { CommandPermissionRequirementSettings } from './CommandPermission';
@@ -138,17 +138,17 @@ export class CommandInteraction {
     public mainType: CommandInteractionMainType = CommandInteractionMainType.slashCommand;
     public registrationContext: CommandInteractionRegistrationContext = CommandInteractionRegistrationContext.allGuilds;
     public registrationGuilds: string[] = [];
-    public builder: SlashCommandBuilder;
+    public applicationCommand: RESTPostAPIApplicationCommandsJSONBody;
     public contextMenuMainTypeSettings: CommandInteractionContextTypeSettings = null;
     public overridePermissions: CommandPermissionRequirementSettings;
 
     public constructor(registrationContext: CommandInteractionRegistrationContext = CommandInteractionRegistrationContext.allGuilds, 
-        builder: SlashCommandBuilder = null,
+        applicationCommand: RESTPostAPIApplicationCommandsJSONBody = null,
         registrationGuilds: string[] = [],
         overridePermissions: CommandPermissionRequirementSettings = null) {
 
         this.registrationContext = registrationContext;
-        this.builder = builder;
+        this.applicationCommand = applicationCommand;
         this.registrationGuilds = registrationGuilds;
         this.overridePermissions = overridePermissions;
     }

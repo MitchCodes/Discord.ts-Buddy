@@ -99,8 +99,8 @@ export class CommandInteractionParser {
                     for (let interaction of comm.inputSettings.interactionSettings.interactions) {
                         let interactionAny: any = <any>inputInteraction;
                         if (interactionAny.commandName) {
-                            if (interaction.builder && interaction.builder.name) {
-                                if (interactionAny.commandName === interaction.builder.name) {
+                            if (interaction.applicationCommand && interaction.applicationCommand.name) {
+                                if (interactionAny.commandName === interaction.applicationCommand.name) {
                                     commands.push(comm);
                                     continue;
                                 }

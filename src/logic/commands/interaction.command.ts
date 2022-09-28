@@ -1,4 +1,4 @@
-import { Interaction, SlashCommandBuilder } from "discord.js";
+import { Interaction, RESTPostAPIApplicationCommandsJSONBody, SlashCommandBuilder } from "discord.js";
 import { Provider } from "nconf";
 import { ILogger } from "tsdatautils-core";
 import { CommandInputContext, CommandInputSettings, CommandInteraction, CommandInteractionRegistrationContext, CommandInteractionSettings, CommandMatchingSettings, CommandMatchingType, CommandResult, CommandResultStatus, CommandUserInput, ICommand, ICommandConfig, ICommandFactory, ICommandLogger, ICommandResult } from "../../models/Command";
@@ -24,7 +24,7 @@ export abstract class InteractionCommand implements ICommand, ICommandFactory, I
     }
 
     abstract makeCommand(): ICommand;
-    abstract getCommandBuilder(): SlashCommandBuilder;
+    abstract getCommandBuilder(): RESTPostAPIApplicationCommandsJSONBody;
     abstract executeInteraction(bot: IDiscordBot, input: Interaction, replyService: CommandSimpleReplyService): Promise<ICommandResult>;
 
     public async setupInputSettings(bot: IDiscordBot): Promise<void> {
@@ -36,7 +36,7 @@ export abstract class InteractionCommand implements ICommand, ICommandFactory, I
         if (this.warnOldCommand) {
             let interactionName: string = null;
             if (commandInteractionSettings && commandInteractionSettings.interactions) {
-                interactionName = commandInteractionSettings.interactions[0].builder.name;
+                interactionName = commandInteractionSettings.interactions[0].applicationCommand.name;
             }
             messageMatchSettings = new CommandMatchingSettings(interactionName, CommandMatchingType.prefixedOneWord, this.oldCommandPrefix);
         }
@@ -52,7 +52,7 @@ export abstract class InteractionCommand implements ICommand, ICommandFactory, I
         let replyService: CommandSimpleReplyService = new CommandSimpleReplyService();
 
         if (this.warnOldCommand && input.inputContext === CommandInputContext.message && input.msg) {
-            let message: string = 'Please use the slash Discord command style of command. Use /' + this.inputSettings.interactionSettings.interactions[0].builder.name + ' instead.';
+            let message: string = 'Please use the slash Discord command style of command. Use /' + this.inputSettings.interactionSettings.interactions[0].applicationCommand.name + ' instead.';
             await replyService.reply(input, { content: message });
             return new CommandResult(CommandResultStatus.success);
         }

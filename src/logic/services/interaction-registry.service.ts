@@ -205,7 +205,7 @@ export class InteractionRegistryService {
 
         for (let interaction of interactions) {
             if (interaction.interaction.mainType === CommandInteractionMainType.slashCommand) {
-                commandData.push(interaction.interaction.builder.toJSON());
+                commandData.push(interaction.interaction.applicationCommand);
             } else {
                 if (interaction.interaction.contextMenuMainTypeSettings) {
                     let contextBuilder: ContextMenuCommandBuilder = new ContextMenuCommandBuilder();
@@ -225,7 +225,7 @@ export class InteractionRegistryService {
 
         for (let interactionCommandContext of InteractionCommandContexts) {
             if (interactionCommandContext.interaction.mainType === CommandInteractionMainType.slashCommand) {
-                returnDictionary[interactionCommandContext.interaction.builder.name] = interactionCommandContext;
+                returnDictionary[interactionCommandContext.interaction.applicationCommand.name] = interactionCommandContext;
             } else {
                 if (interactionCommandContext.interaction.contextMenuMainTypeSettings) {
                     returnDictionary[interactionCommandContext.interaction.contextMenuMainTypeSettings.name] = interactionCommandContext;

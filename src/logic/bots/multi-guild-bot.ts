@@ -142,12 +142,12 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
                 let interactionJson: string = null;
                 let fileName: string = null;
                 if (interactionContext.interaction.mainType === CommandInteractionMainType.slashCommand) {
-                    if (!interactionContext.interaction.builder) {
+                    if (!interactionContext.interaction.applicationCommand) {
                         continue;
                     }
 
-                    interactionJson = JSON.stringify(interactionContext.interaction.builder.toJSON());
-                    fileName = interactionContext.command.commandName + '_' + interactionContext.interaction.builder.name;
+                    interactionJson = JSON.stringify(interactionContext.interaction.applicationCommand);
+                    fileName = interactionContext.command.commandName + '_' + interactionContext.interaction.applicationCommand.name;
                 } else {
                     if (!interactionContext.interaction.contextMenuMainTypeSettings) {
                         continue;
@@ -191,12 +191,12 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
                 let interactionJson: string = null;
                 let fileName: string = null;
                 if (interactionContext.interaction.mainType === CommandInteractionMainType.slashCommand) {
-                    if (!interactionContext.interaction.builder) {
+                    if (!interactionContext.interaction.applicationCommand) {
                         continue;
                     }
 
-                    interactionJson = JSON.stringify(interactionContext.interaction.builder.toJSON());
-                    fileName = interactionContext.command.commandName + '_' + interactionContext.interaction.builder.name;
+                    interactionJson = JSON.stringify(interactionContext.interaction.applicationCommand);
+                    fileName = interactionContext.command.commandName + '_' + interactionContext.interaction.applicationCommand.name;
                 } else {
                     if (!interactionContext.interaction.contextMenuMainTypeSettings) {
                         continue;
