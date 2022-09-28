@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { InteractionReplyOptions } from "discord.js";
+import { CacheType, Interaction, InteractionReplyOptions } from "discord.js";
 import { CommandUserInput, CommandInputContext } from "../../models/Command";
 import { CommandReplyOptions, CommandReplyStateOptions } from "../../models/CommandReply";
 import { StringHelper } from "../helpers/string.helper";
@@ -11,7 +11,12 @@ export class CommandReplyService {
         this.maxTextMessageLength = maxTextMessageLength;
     }
 
-    public async reply(input: CommandUserInput, options: CommandReplyOptions & CommandReplyStateOptions): Promise<void> {
+    public async reply(input: Interaction<CacheType>, options: CommandReplyOptions & CommandReplyStateOptions): Promise<void> {
+        let commandInput: CommandUserInput = new CommandUserInput(CommandInputContext.interaction, null, input);
+        return this.replyHybrid(commandInput, options);
+    }
+
+    public async replyHybrid(input: CommandUserInput, options: CommandReplyOptions & CommandReplyStateOptions): Promise<void> {
         if (!input) {
             return;
         }
@@ -101,7 +106,12 @@ export class CommandReplyService {
         }
     }
 
-    public async deferReply(input: CommandUserInput, ephemeral: boolean = false): Promise<void> {
+    public async deferReply(input: Interaction<CacheType>, ephemeral: boolean = false): Promise<void> {
+        let commandInput: CommandUserInput = new CommandUserInput(CommandInputContext.interaction, null, input);
+        return this.deferReplyHybrid(commandInput, ephemeral);
+    }
+
+    public async deferReplyHybrid(input: CommandUserInput, ephemeral: boolean = false): Promise<void> {
         if (input.inputContext === CommandInputContext.interaction) {
             let interactionAny: any = <any>input.interaction;
             if (interactionAny.deferReply) {
@@ -112,17 +122,27 @@ export class CommandReplyService {
         }
     }
 
-    public async replyAfterDefer(input: CommandUserInput, options: CommandReplyOptions & CommandReplyStateOptions): Promise<void> {
+    public async replyAfterDefer(input: Interaction<CacheType>, options: CommandReplyOptions & CommandReplyStateOptions): Promise<void> {
+        let commandInput: CommandUserInput = new CommandUserInput(CommandInputContext.interaction, null, input);
+        return this.replyAfterDeferHybrid(commandInput, options);
+    }
+
+    public async replyAfterDeferHybrid(input: CommandUserInput, options: CommandReplyOptions & CommandReplyStateOptions): Promise<void> {
         let copiedOptions: CommandReplyOptions & CommandReplyStateOptions = {...options};
         copiedOptions.wasDeferred = true;
         
-        return await this.reply(input, copiedOptions);
+        return await this.replyHybrid(input, copiedOptions);
     }
 
-    public async followUp(input: CommandUserInput, options: CommandReplyOptions & CommandReplyStateOptions): Promise<void> {
+    public async followUp(input: Interaction<CacheType>, options: CommandReplyOptions & CommandReplyStateOptions): Promise<void> {
+        let commandInput: CommandUserInput = new CommandUserInput(CommandInputContext.interaction, null, input);
+        return this.followUpHybrid(commandInput, options);
+    }
+
+    public async followUpHybrid(input: CommandUserInput, options: CommandReplyOptions & CommandReplyStateOptions): Promise<void> {
         let copiedOptions: CommandReplyOptions & CommandReplyStateOptions = {...options};
         copiedOptions.isFollowUp = true;
         
-        return await this.reply(input, copiedOptions);
+        return await this.replyHybrid(input, copiedOptions);
     }
 }
