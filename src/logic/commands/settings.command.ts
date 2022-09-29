@@ -357,7 +357,7 @@ export class SettingsCommand extends InteractionCommand {
         let message: string = 'Settings:\n\n';
         
         for (let setting of this.commandSettings) {
-            message += ' * ' + setting.name + ' - Type: ' + this.getSettingTypeDescription(setting.type) + setting.isList ? ' List' : '' + ' - ' + setting.description + '\n';
+            message += ' * ' + setting.name + ' - Type: ' + this.getSettingTypeDescription(setting.type) + (setting.isList ? ' List' : '') + ' - ' + setting.description + '\n';
         }
 
         replyService.replyAfterDefer(input, { content: message, ephemeral: true });
