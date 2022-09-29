@@ -60,7 +60,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
             intents = [GatewayIntentBits.GuildMembers, GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates,
                 GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMessageReactions,
                 GatewayIntentBits.DirectMessages, GatewayIntentBits.DirectMessageReactions, GatewayIntentBits.DirectMessageTyping,
-                GatewayIntentBits.GuildScheduledEvents, GatewayIntentBits.GuildEmojisAndStickers, GatewayIntentBits.GuildInvites];
+                GatewayIntentBits.GuildScheduledEvents, GatewayIntentBits.GuildEmojisAndStickers, GatewayIntentBits.GuildInvites, GatewayIntentBits.MessageContent];
         }
 
         this.botClient = new Client({ intents: intents });
