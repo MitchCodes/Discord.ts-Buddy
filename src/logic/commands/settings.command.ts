@@ -287,11 +287,11 @@ export class SettingsCommand extends InteractionCommand {
     
                         return input;
                     })
-                    .addMentionableOption(input => {
+                    .addChannelOption(input => {
                         return input.setName('value')
                             .setDescription('Channel value')
                             .setRequired(true);
-                    });
+                    })
                 });
         }
 
@@ -312,7 +312,7 @@ export class SettingsCommand extends InteractionCommand {
     
                         return input;
                     })
-                    .addMentionableOption(input => {
+                    .addChannelOption(input => {
                         return input.setName('value')
                             .setDescription('Channel to add to the setting list')
                             .setRequired(true);
