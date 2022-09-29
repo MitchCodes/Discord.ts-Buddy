@@ -40,7 +40,7 @@ export abstract class InteractionCommand implements ICommand, ICommandFactory, I
             if (commandInteractionSettings && commandInteractionSettings.interactions) {
                 interactionName = commandInteractionSettings.interactions[0].applicationCommand.name;
             }
-            messageMatchSettings = new CommandMatchingSettings(interactionName, CommandMatchingType.prefixedOneWord, this.oldCommandPrefix);
+            messageMatchSettings = new CommandMatchingSettings(interactionName, CommandMatchingType.prefixedOneWord, this.oldCommandPrefix, ' ');
         }
         
         this.inputSettings = new CommandInputSettings(messageMatchSettings, commandInteractionSettings);
