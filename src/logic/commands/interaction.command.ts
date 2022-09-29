@@ -54,7 +54,7 @@ export abstract class InteractionCommand implements ICommand, ICommandFactory, I
         let replyService: CommandReplyService = new CommandReplyService();
 
         if (this.warnOldCommand && input.inputContext === CommandInputContext.message && input.msg) {
-            let message: string = 'Please use the slash Discord command style of command. Use /' + this.inputSettings.interactionSettings.interactions[0].applicationCommand.name + ' instead.';
+            let message: string = 'Please use the slash Discord command style of command. Use /' + input.msg.content.substring(1) + ' instead.';
             await replyService.replyHybrid(input, { content: message });
             return new CommandResult(CommandResultStatus.success);
         }
