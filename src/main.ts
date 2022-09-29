@@ -12,6 +12,10 @@ export { ErrorWithCode, GenericErrorCodes } from './models/Errors';
 export { BasicDictionary } from './models/BasicDictionary';
 export { CommandReplyOptions, CommandReplyStateOptions } from './models/CommandReply';
 export { InputParseResult } from './models/CommandInputParse';
+export { CommandSetting, CommandStringArraySetting, CommandStringSetting, ICommandSettings, CommandSettingType, BotCommandSetting, ICommandSettingsBot } from './models/CommandSettings';
+
+// Builders
+export { CommandSettingBuilder, CommandSettingsBuilder } from './logic/builders/command-settings.builder';
 
 // Helpers
 export { DiscordHelper } from './logic/helpers/discord.helper';
@@ -38,5 +42,6 @@ export { InteractionInputParserService } from './logic/services/interaction-inpu
 
 // Commands
 export { InteractionCommand } from './logic/commands/interaction.command';
+export { SettingsCommand } from './logic/commands/settings.command';
 export { CommandMessageParser } from './logic/command.logic';
 export { ICommandMessageMatchFactory, PrefixedMessageMatchFactory, ExactMessageMatchFactory, StartsWithMessageMatchFactory } from './logic/factories/commandmessagematch.factory';

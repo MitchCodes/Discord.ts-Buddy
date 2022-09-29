@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/ban-types */
 import { Interaction } from 'discord.js';
-import { ICommand, CommandMatchingType, ICommandFactory, CommandInteractionMainType } from '../models/Command';
+import { ICommand, CommandMatchingType, ICommandFactory } from '../models/Command';
+import { MultiGuildBot } from './bots/multi-guild-bot';
 import { BotHelper } from './helpers/bot.helper';
 
 export class CommandMessageParser {
@@ -76,8 +75,8 @@ export class CommandInteractionParser {
         this.botHelper = new BotHelper();
     }
 
-    public getCommandsForInteractionInput(interaction: Interaction): ICommand[] {
-        let commands: ICommandFactory[] = this.findInteractionCommands(interaction);
+    public getCommandsForInteractionInput(bot: MultiGuildBot, interaction: Interaction): ICommand[] {
+        let commands: ICommandFactory[] = this.findInteractionCommands(bot, interaction);
 
         let newCommands: ICommand[] = [];
         if (commands !== null) {
@@ -90,19 +89,21 @@ export class CommandInteractionParser {
         return newCommands;        
     }
 
-    private findInteractionCommands(inputInteraction: Interaction): ICommandFactory[] {
+    private findInteractionCommands(bot: MultiGuildBot, inputInteraction: Interaction): ICommandFactory[] {
         let commands: ICommandFactory[] = [];
-
-        for (let comm of this.availableCommands) {
-            if (this.botHelper.hasCommandFactory(comm)) {
-                if (comm.inputSettings && comm.inputSettings.interactionSettings && comm.inputSettings.interactionSettings.interactions) {
-                    for (let interaction of comm.inputSettings.interactionSettings.interactions) {
-                        let interactionAny: any = <any>inputInteraction;
-                        if (interactionAny.commandName) {
-                            if (interaction.applicationCommand && interaction.applicationCommand.name) {
-                                if (interactionAny.commandName === interaction.applicationCommand.name) {
-                                    commands.push(comm);
-                                    continue;
+        
+        if (bot.botClient.user.id === inputInteraction.client.user.id) {
+            for (let comm of this.availableCommands) {
+                if (this.botHelper.hasCommandFactory(comm)) {
+                    if (comm.inputSettings && comm.inputSettings.interactionSettings && comm.inputSettings.interactionSettings.interactions) {
+                        for (let interaction of comm.inputSettings.interactionSettings.interactions) {
+                            let interactionAny: any = <any>inputInteraction;
+                            if (interactionAny.commandName) {
+                                if (interaction.applicationCommand && interaction.applicationCommand.name) {
+                                    if (interactionAny.commandName === interaction.applicationCommand.name) {
+                                        commands.push(comm);
+                                        continue;
+                                    }
                                 }
                             }
                         }

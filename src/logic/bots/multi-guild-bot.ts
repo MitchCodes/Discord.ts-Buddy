@@ -1,23 +1,21 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-empty-function */
 import { Provider } from 'nconf';
 import { IDiscordBot, BotStatus, IAutoManagedBot } from '../../models/DiscordBot';
 import { ICommandPermissions, CommandPermissionFeedbackType, CommandPermissionResult, 
         CommandPermissionResultStatus } from '../../models/CommandPermission';
 import { Client, Guild, Interaction, Message, TextChannel, GatewayIntentBits } from 'discord.js';
-
-// tslint:disable-next-line:no-submodule-imports
 import * as Rx from 'rxjs/Rx';
 import { CommandInteractionParser, CommandMessageParser } from '../command.logic';
-import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandUserInput, CommandInteractionRegistrationContext, CommandInteractionMainType } from '../../models/Command';
+import { ICommand, ICommandResult, CommandResult, CommandResultStatus, CommandInputContext, CommandUserInput, CommandInteractionRegistrationContext } from '../../models/Command';
 import { CommandPermissionsService } from '../services/permissions.service';
 import { MessengerService } from '../services/messenger.service';
 import { ILogger } from 'tsdatautils-core';
 import { InteractionRegistrationCommandContext, InteractionRegistryService } from '../services/interaction-registry.service';
 import { HashService } from '../services/hash.service';
 import { FileObjectService } from '../services/file-object.service';
+import { BotCommandSetting, CommandSetting, ICommandSettings, ICommandSettingsBot } from '../../models/CommandSettings';
+import { SettingsCommand } from '../commands/settings.command';
 
-export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
+export class MultiGuildBot implements IDiscordBot, IAutoManagedBot, ICommandSettingsBot {
     public guilds: Guild[] = [];
     public name: string = 'Discord Bot';
     public color: number = 3381759;
@@ -36,9 +34,14 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
     public logger: ILogger = null;
     public botClient: Client = null;
     public commands: ICommand[] = [];
+    public getSettingsCallback: (botId: string, guildId: string) => Promise<BotCommandSetting[]>;
+    public saveSettingCallback: (commandSetting: BotCommandSetting) => Promise<boolean>;
     protected conf: Provider = null;
     protected botToken: string = '';
     protected status: BotStatus = BotStatus.inactive;
+
+    protected commandSettings: CommandSetting[] = [];
+    protected addSettingsCommand: boolean = true;
 
     constructor(passedBotName: string, passedBotToken: string, passedLogger: ILogger, 
                 passedConf: Provider) {
@@ -85,18 +88,46 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
         return 'stopped';
     }
 
-    // tslint:disable-next-line:no-empty
     public async setupBot(): Promise<void> {
+        // Setup bot-level settings
+        if (this.addSettingsCommand) {
+            let botSettings: CommandSetting[] = await this.setupBotSettings();
+            for (let botSetting of botSettings) {
+                this.commandSettings.push(botSetting);
+            }
+        }
 
         // Default command parser setup
         let commands: ICommand[] = this.setupCommands();
         for (let command of commands) {
+            let commandAny: any = <any>command;
+
             command.setupInputSettings(this);
-            if ((<any>command).setupPermissions) {
+
+            if (commandAny.setupPermissions) {
                 await (<ICommandPermissions><unknown>command).setupPermissions(this, new CommandUserInput(CommandInputContext.none, null, null));
             }
+
+            if (this.addSettingsCommand && commandAny.getSettings) {
+                let settings: CommandSetting[] = await (<ICommandSettings><unknown>command).getSettings();
+                if (settings) {
+                    for (let setting of settings) {
+                        this.commandSettings.push(setting);
+                    }
+                }
+            }
+
             this.commands.push(command);
         }
+
+        if (this.addSettingsCommand && this.commandSettings) {
+            let settingCommand: SettingsCommand = new SettingsCommand('Settings', 'Settings for ' + this.name, this.logger, this.conf, this, this.commandSettings, this.getSettingsCallback, this.saveSettingCallback);
+            this.commands.push(settingCommand);
+        }
+    }
+
+    public async setupBotSettings(): Promise<CommandSetting[]> {
+        return [];
     }
 
     public setupCommands(): ICommand[] {
@@ -196,6 +227,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
     }
     
     protected setupCommandPreExecute(command: ICommand): void {
+        return;
     }
 
     private isICommandResultError(object: any): object is ICommandResult {
@@ -226,7 +258,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot {
     protected handleInteraction(interaction: Interaction): void {
         if (this.commands) {
             let commandInteractionParser: CommandInteractionParser = new CommandInteractionParser(this.commands);
-            let commands: ICommand[] = commandInteractionParser.getCommandsForInteractionInput(interaction);
+            let commands: ICommand[] = commandInteractionParser.getCommandsForInteractionInput(this, interaction);
             if (commands) {
                 for (let command of commands) {
                     if (command) {
