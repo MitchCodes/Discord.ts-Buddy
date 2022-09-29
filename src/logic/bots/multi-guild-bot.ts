@@ -225,6 +225,19 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot, ICommandSett
             this.logger.error('Error handling post interaction registration: ' + err);
         }
     }
+
+    public async getCommandSetting(name: string, guildId: string): Promise<unknown> {
+        if (this.getSettingsCallback) {
+            let commandSettings: BotCommandSetting[] = await this.getSettingsCallback(this.botClient.user.id, guildId);
+            for (let commandSetting of commandSettings) {
+                if (commandSetting && commandSetting.name === name) {
+                    return commandSetting.value;
+                }
+            }
+        }
+
+        return null;
+    }
     
     protected setupCommandPreExecute(command: ICommand): void {
         return;
