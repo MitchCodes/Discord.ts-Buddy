@@ -326,7 +326,7 @@ export class SettingsCommand extends InteractionCommand {
     public async executeInteraction(bot: IDiscordBot, input: Interaction<CacheType>, inputParseResult: InputParseResult, replyService: CommandReplyService): Promise<ICommandResult> {
         let result: ICommandResult = new CommandResult(CommandResultStatus.success);
 
-        replyService.deferReply(input, true);
+        await replyService.deferReply(input, true);
 
         let subCommand: string = inputParseResult.commandTree[1];
 
