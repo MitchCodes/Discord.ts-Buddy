@@ -54,51 +54,39 @@ export class CommandReplyService {
             } 
             
             if (input.inputContext === CommandInputContext.interaction) {
-                if (input.interaction) {
-                    let interactionAny: any = <any>input.interaction;
-    
+                if (input.interaction && input.interaction.isRepliable()) {    
                     if (options.wasDeferred && isFirst) {
-                        if (interactionAny.editReply) {
-                            let replyOptions: InteractionReplyOptions = {
-                                content: content,
-                                embeds: options.embeds,
-                                files: options.files,
-                                allowedMentions: options.mentions,
-                                components: options.interactionComponents,
-                            };
-                            await interactionAny.editReply(replyOptions);
-                        } else {
-                            throw 'Interaction does not have a editReply function';
-                        }
+                        let replyOptions: InteractionReplyOptions = {
+                            content: content,
+                            embeds: options.embeds,
+                            files: options.files,
+                            allowedMentions: options.mentions,
+                            components: options.interactionComponents,
+                        };
+                        await input.interaction.editReply(replyOptions);
                     } else if (options.isFollowUp || !isFirst) {
-                        if (interactionAny.followUp) {
-                            let replyOptions: InteractionReplyOptions = {
-                                content: content,
-                                embeds: options.embeds,
-                                files: options.files,
-                                allowedMentions: options.mentions,
-                                components: options.interactionComponents,
-                                ephemeral: options.ephemeral
-                            };
-                            await interactionAny.followUp(replyOptions);
-                        } else {
-                            throw 'Interaction does not have a followUp function';
-                        }
+                        let replyOptions: InteractionReplyOptions = {
+                            content: content,
+                            embeds: options.embeds,
+                            files: options.files,
+                            allowedMentions: options.mentions,
+                            components: options.interactionComponents,
+                            ephemeral: options.ephemeral
+                        };
+                        await input.interaction.followUp(replyOptions);
                     } else {
-                        if (interactionAny.reply) {
-                            let replyOptions: InteractionReplyOptions = {
-                                content: content,
-                                embeds: options.embeds,
-                                files: options.files,
-                                allowedMentions: options.mentions,
-                                components: options.interactionComponents,
-                                ephemeral: options.ephemeral
-                            };
-                            await interactionAny.reply(replyOptions);
-                        } else {
-                            throw 'Interaction does not have a reply function';
-                        }
+                        let replyOptions: InteractionReplyOptions = {
+                            content: content,
+                            embeds: options.embeds,
+                            files: options.files,
+                            allowedMentions: options.mentions,
+                            components: options.interactionComponents,
+                            ephemeral: options.ephemeral
+                        };
+                        await input.interaction.reply(replyOptions);
                     }
+                } else {
+                    throw 'Interaction is not repliable';
                 }
             }
 
@@ -112,10 +100,9 @@ export class CommandReplyService {
     }
 
     public async deferReplyHybrid(input: CommandUserInput, ephemeral: boolean = false): Promise<void> {
-        if (input.inputContext === CommandInputContext.interaction) {
-            let interactionAny: any = <any>input.interaction;
-            if (interactionAny.deferReply) {
-                await interactionAny.deferReply({ ephemeral: ephemeral });
+        if (input.inputContext === CommandInputContext.interaction && input.interaction) {
+            if (input.interaction.isRepliable()) {
+                await input.interaction.deferReply({ephemeral: ephemeral});
             } else {
                 throw 'Interaction does not have a deferReply function';
             }
