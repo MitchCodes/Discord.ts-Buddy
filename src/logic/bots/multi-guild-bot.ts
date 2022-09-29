@@ -120,7 +120,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot, ICommandSett
             this.commands.push(command);
         }
 
-        if (this.addSettingsCommand && this.commandSettings) {
+        if (this.addSettingsCommand && this.commandSettings && this.commandSettings.length > 0) {
             let settingCommand: SettingsCommand = new SettingsCommand('Settings', 'Settings for ' + this.name, this.logger, this.conf, this, this.commandSettings, this.getSettingsCallback, this.saveSettingCallback);
             this.commands.push(settingCommand);
         }
