@@ -354,7 +354,7 @@ export class SettingsCommand extends InteractionCommand {
 
     private async listSettings(bot: IDiscordBot, input: Interaction<CacheType>, inputParseResult: InputParseResult, replyService: CommandReplyService): Promise<ICommandResult> {
         let result: ICommandResult = new CommandResult(CommandResultStatus.success);
-        let message: 'Settings:\n\n';
+        let message: string = 'Settings:\n\n';
         
         for (let setting of this.commandSettings) {
             message += ' * ' + setting.name + ' - Type: ' + this.getSettingTypeDescription(setting.type) + setting.isList ? ' List' : '' + ' - ' + setting.description + '\n';
