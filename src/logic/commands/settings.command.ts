@@ -360,7 +360,7 @@ export class SettingsCommand extends InteractionCommand {
             message += ' * ' + setting.name + ' - Type: ' + this.getSettingTypeDescription(setting.type) + (setting.isList ? ' List' : '') + ' - ' + setting.description + '\n';
         }
 
-        replyService.replyAfterDefer(input, { content: message, ephemeral: true });
+        await replyService.replyAfterDefer(input, { content: message, ephemeral: true });
 
         return result;
     }
@@ -383,20 +383,36 @@ export class SettingsCommand extends InteractionCommand {
             let setting: CommandSetting = settingsDictionary[settingName];
 
             if (savedSetting && setting) {
-                if (setting.type === CommandSettingType.rawData) {
-                    settingValue = <string>savedSetting.value;
-                } else if (setting.type === CommandSettingType.role ||
-                    setting.type === CommandSettingType.user ||
-                    setting.type === CommandSettingType.channel) {
-                    settingValue = '<@' + <string>savedSetting.value + '>';
+                if (setting.isList) {
+                    let values: Array<unknown> = <Array<unknown>>savedSetting.value;
+                    settingValue = '\n\n';
+                    for (let value of values) {
+                        settingValue += ' - ' + this.transformSingleValue(<string>value, setting) + '\n';
+                    }
+                } else {
+                    settingValue = this.transformSingleValue(<string>savedSetting.value, setting);
                 }
             }
         }
 
         let message: string = 'Setting value: ' + settingValue;
-        replyService.replyAfterDefer(input, { content: message, ephemeral: true });
+        await replyService.replyAfterDefer(input, { content: message, ephemeral: true });
 
         return result;
+    }
+
+    private transformSingleValue(value: string, setting: CommandSetting): string {
+        let settingValue: string;
+        if (setting.type === CommandSettingType.rawData) {
+            settingValue = value;
+        } else if (setting.type === CommandSettingType.role ||
+            setting.type === CommandSettingType.user) {
+            settingValue = '<@' + value + '>';
+        } else if (setting.type === CommandSettingType.channel) {
+            settingValue = '<#' + value + '>';
+        }
+
+        return settingValue;
     }
 
     private async setSetting(bot: IDiscordBot, input: Interaction<CacheType>, inputParseResult: InputParseResult, replyService: CommandReplyService): Promise<ICommandResult> {
@@ -427,7 +443,7 @@ export class SettingsCommand extends InteractionCommand {
         await this.saveSettingCallback(commandToSave);
 
         let message: string = 'Setting saved.';
-        replyService.replyAfterDefer(input, { content: message, ephemeral: true });
+        await replyService.replyAfterDefer(input, { content: message, ephemeral: true });
 
         return result;
     }
@@ -464,7 +480,7 @@ export class SettingsCommand extends InteractionCommand {
         await this.saveSettingCallback(commandToSave);
 
         let message: string = 'Setting saved.';
-        replyService.replyAfterDefer(input, { content: message, ephemeral: true });
+        await replyService.replyAfterDefer(input, { content: message, ephemeral: true });
 
         return result;
     }
@@ -487,7 +503,7 @@ export class SettingsCommand extends InteractionCommand {
         await this.saveSettingCallback(commandToSave);
 
         let message: string = 'Setting saved.';
-        replyService.replyAfterDefer(input, { content: message, ephemeral: true });
+        await replyService.replyAfterDefer(input, { content: message, ephemeral: true });
 
         return result;
     }
