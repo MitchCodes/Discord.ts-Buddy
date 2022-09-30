@@ -158,7 +158,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot, ICommandSett
         await interactionRegistryService.registerInteractions(this.botClient, this.botClient.user.id, this.botToken, [...this.botClient.guilds.cache.values()], this.commands);
     }
 
-    public async shouldRegisterInteractions(context: CommandInteractionRegistrationContext, interactions: InteractionRegistrationCommandContext[], guildId: string): Promise<boolean> {
+    public async shouldRegisterInteractions(context: CommandInteractionRegistrationContext, interactions: InteractionRegistrationCommandContext[], botId: string, guildId: string): Promise<boolean> {
         let shouldRegister: boolean = true;
 
         try {
@@ -174,8 +174,15 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot, ICommandSett
                 let interactionJson: string = JSON.stringify(interactionContext.interaction.applicationCommand);
                 let fileName: string = interactionContext.command.commandName + '_' + interactionContext.interaction.applicationCommand.name;
         
-                if (context !== CommandInteractionRegistrationContext.global && guildId) {
-                    fileName = guildId + '_' + fileName;
+                if (context !== CommandInteractionRegistrationContext.global) {
+                    let newFileName: string = '';
+                    if (guildId) {
+                        newFileName += guildId + '_';
+                    }
+                    if (botId) {
+                        newFileName += botId + '_';
+                    }
+                    fileName = newFileName + fileName;
                 }
 
                 fileName = 'interactionRegistryHashes/' + fileName;
@@ -199,7 +206,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot, ICommandSett
         return shouldRegister;
     }
 
-    public async postInteractionRegistration(context: CommandInteractionRegistrationContext, interactions: InteractionRegistrationCommandContext[], guildId: string): Promise<void> {
+    public async postInteractionRegistration(context: CommandInteractionRegistrationContext, interactions: InteractionRegistrationCommandContext[], botId: string, guildId: string): Promise<void> {
         try {
             let fileObjectService: FileObjectService = new FileObjectService();
             let hashService: HashService = new HashService();
@@ -212,10 +219,17 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot, ICommandSett
                 let interactionJson: string = JSON.stringify(interactionContext.interaction.applicationCommand);
                 let fileName: string = interactionContext.command.commandName + '_' + interactionContext.interaction.applicationCommand.name;
 
-                if (context !== CommandInteractionRegistrationContext.global && guildId) {
-                    fileName = guildId + '_' + fileName;
+                if (context !== CommandInteractionRegistrationContext.global) {
+                    let newFileName: string = '';
+                    if (guildId) {
+                        newFileName += guildId + '_';
+                    }
+                    if (botId) {
+                        newFileName += botId + '_';
+                    }
+                    fileName = newFileName + fileName;
                 }
-
+                
                 fileName = 'interactionRegistryHashes/' + fileName;
 
                 let interactionHash: string = hashService.getHash(interactionJson);

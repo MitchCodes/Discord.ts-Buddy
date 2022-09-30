@@ -20,12 +20,12 @@ export class InteractionRegistrationCommandContext {
 
 export class InteractionRegistryService {
     private logger: ILogger = null;
-    private shouldRegisterCallback: (context: CommandInteractionRegistrationContext, interactions: InteractionRegistrationCommandContext[], guildId: string) => Promise<boolean> = null;
-    private registeredInteractionsCallback: (context: CommandInteractionRegistrationContext, interactions: InteractionRegistrationCommandContext[], guildId: string) => Promise<void> = null;
+    private shouldRegisterCallback: (context: CommandInteractionRegistrationContext, interactions: InteractionRegistrationCommandContext[], botId: string, guildId: string) => Promise<boolean> = null;
+    private registeredInteractionsCallback: (context: CommandInteractionRegistrationContext, interactions: InteractionRegistrationCommandContext[], botId: string, guildId: string) => Promise<void> = null;
 
     public constructor(logger: ILogger, 
-                            shouldRegisterCallback: (context: CommandInteractionRegistrationContext, interactions: InteractionRegistrationCommandContext[], guildId: string) => Promise<boolean> = null,
-                            registeredInteractionsCallback: (context: CommandInteractionRegistrationContext, interactions: InteractionRegistrationCommandContext[], guildId: string) => Promise<void> = null
+                            shouldRegisterCallback: (context: CommandInteractionRegistrationContext, interactions: InteractionRegistrationCommandContext[], botId: string, guildId: string) => Promise<boolean> = null,
+                            registeredInteractionsCallback: (context: CommandInteractionRegistrationContext, interactions: InteractionRegistrationCommandContext[], botId: string, guildId: string) => Promise<void> = null
                         ) {
         this.logger = logger;
         this.shouldRegisterCallback = shouldRegisterCallback;
@@ -96,7 +96,7 @@ export class InteractionRegistryService {
         if (globalInteractions) {
             let shouldUpdate: boolean = true;
             if (this.shouldRegisterCallback) {
-                shouldUpdate = await this.shouldRegisterCallback(CommandInteractionRegistrationContext.global, globalInteractions, null);
+                shouldUpdate = await this.shouldRegisterCallback(CommandInteractionRegistrationContext.global, globalInteractions, null, null);
             }
             if (shouldUpdate) {
                 await this.registerGuildGlobalInteractions(clientId, rest, globalInteractions);
@@ -110,7 +110,7 @@ export class InteractionRegistryService {
                     let interactions: InteractionRegistrationCommandContext[] = guildInteractions[guildId];
                     let shouldUpdate: boolean = true;
                     if (this.shouldRegisterCallback) {
-                        shouldUpdate = await this.shouldRegisterCallback(CommandInteractionRegistrationContext.allGuilds, interactions, guildId);
+                        shouldUpdate = await this.shouldRegisterCallback(CommandInteractionRegistrationContext.allGuilds, interactions, clientId, guildId);
                     }
                     if (shouldUpdate) {
                         await this.registerGuildInteractions(clientId, rest, guildId, interactions);
@@ -158,7 +158,7 @@ export class InteractionRegistryService {
         let allInteractionsByGuild: BasicDictionary<InteractionRegistrationCommandContext[]> = this.getAllInteractionsByGuildIncGlobal(allGuilds, globalInteractions, guildInteractions);
 
         if (this.registeredInteractionsCallback) {
-            await this.registeredInteractionsCallback(CommandInteractionRegistrationContext.global, globalInteractions, null);
+            await this.registeredInteractionsCallback(CommandInteractionRegistrationContext.global, globalInteractions, null, null);
         }
 
         let guildIds: string[] = Object.keys(allInteractionsByGuild);
@@ -166,7 +166,7 @@ export class InteractionRegistryService {
             if (allInteractionsByGuild[guildId]) {
                 let guildInteractions: InteractionRegistrationCommandContext[] = allInteractionsByGuild[guildId];
                 if (this.registeredInteractionsCallback) {
-                    await this.registeredInteractionsCallback(CommandInteractionRegistrationContext.guildList, guildInteractions, guildId);
+                    await this.registeredInteractionsCallback(CommandInteractionRegistrationContext.guildList, guildInteractions, client.user.id, guildId);
                 }
             }
         }
