@@ -1,7 +1,17 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync } from 'fs';
 import { join, isAbsolute, extname, dirname } from 'path';
 
 export class FileObjectService {
+    public async deleteAllFiles(directoryPath: string): Promise<boolean> {
+        let files: string[] = readdirSync(directoryPath);
+
+        for (let file of files) {
+            rmSync(file);
+        }
+
+        return true;
+    }
+
     public async getFromFile<T>(filePath: string): Promise<T> {
         let fullPath: string = await this.getFinalPath(filePath);
         if (!existsSync(fullPath)) {

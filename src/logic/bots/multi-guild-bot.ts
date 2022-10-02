@@ -153,7 +153,16 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot, ICommandSett
         this.onBotRequiresRestart.next(err);
     }
 
-    public async registerInteractions(): Promise<void> {
+    public async registerInteractions(force: boolean = false): Promise<void> {
+        if (force) {
+            try {
+                let fileObjectService: FileObjectService = new FileObjectService();
+                await fileObjectService.deleteAllFiles('interactionRegistryHashes/');
+            } catch (err) {
+                this.logger.error('Error deleting existing registration files: ' + err);
+            }
+        }
+        
         let interactionRegistryService: InteractionRegistryService = new InteractionRegistryService(this.logger, this.shouldRegisterInteractions, this.postInteractionRegistration);
         await interactionRegistryService.registerInteractions(this.botClient, this.botClient.user.id, this.botToken, [...this.botClient.guilds.cache.values()], this.commands);
     }
@@ -256,6 +265,10 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot, ICommandSett
     
     protected setupCommandPreExecute(command: ICommand): void {
         return;
+    }
+
+    private deleteRegistrationFiles(): void {
+
     }
 
     private isICommandResultError(object: any): object is ICommandResult {

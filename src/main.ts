@@ -45,3 +45,4 @@ export { InteractionCommand } from './logic/commands/interaction.command';
 export { SettingsCommand } from './logic/commands/settings.command';
 export { CommandMessageParser } from './logic/command.logic';
 export { ICommandMessageMatchFactory, PrefixedMessageMatchFactory, ExactMessageMatchFactory, StartsWithMessageMatchFactory } from './logic/factories/commandmessagematch.factory';
+export { ReregisterCommand } from './logic/commands/reregister.command';
