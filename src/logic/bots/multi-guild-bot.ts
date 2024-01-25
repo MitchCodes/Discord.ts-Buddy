@@ -102,22 +102,26 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot, ICommandSett
         // Default command parser setup
         let commands: ICommand[] = this.setupCommands();
         for (let command of commands) {
-            command.setupInputSettings(this);
+            try {
+                command.setupInputSettings(this);
 
-            if (this.isCommandPermissions(command)) {
-                await command.setupPermissions(this, new CommandUserInput(CommandInputContext.none, null, null));
-            }
+                if (this.isCommandPermissions(command)) {
+                    await command.setupPermissions(this, new CommandUserInput(CommandInputContext.none, null, null));
+                }
 
-            if (this.addSettingsCommand && this.isCommandSettings(command)) {
-                let settings: CommandSetting[] = await command.getSettings();
-                if (settings) {
-                    for (let setting of settings) {
-                        this.commandSettings.push(setting);
+                if (this.addSettingsCommand && this.isCommandSettings(command)) {
+                    let settings: CommandSetting[] = await command.getSettings();
+                    if (settings) {
+                        for (let setting of settings) {
+                            this.commandSettings.push(setting);
+                        }
                     }
                 }
-            }
 
-            this.commands.push(command);
+                this.commands.push(command);
+            } catch (error) {
+                this.botError('Error setting up command ' + command.commandName + ': ' + error);
+            }
         }
 
         if (this.addSettingsCommand && this.commandSettings && this.commandSettings.length > 0) {
