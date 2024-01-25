@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Provider } from 'nconf';
 import { IDiscordBot, BotStatus, IAutoManagedBot } from '../../models/DiscordBot';
 import { ICommandPermissions, CommandPermissionFeedbackType, CommandPermissionResult, 
@@ -100,16 +102,14 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot, ICommandSett
         // Default command parser setup
         let commands: ICommand[] = this.setupCommands();
         for (let command of commands) {
-            let commandAny: any = <any>command;
-
             command.setupInputSettings(this);
 
-            if (commandAny.setupPermissions) {
-                await (<ICommandPermissions><unknown>command).setupPermissions(this, new CommandUserInput(CommandInputContext.none, null, null));
+            if (this.isCommandPermissions(command)) {
+                await command.setupPermissions(this, new CommandUserInput(CommandInputContext.none, null, null));
             }
 
-            if (this.addSettingsCommand && commandAny.getSettings) {
-                let settings: CommandSetting[] = await (<ICommandSettings><unknown>command).getSettings();
+            if (this.addSettingsCommand && this.isCommandSettings(command)) {
+                let settings: CommandSetting[] = await command.getSettings();
                 if (settings) {
                     for (let setting of settings) {
                         this.commandSettings.push(setting);
@@ -125,6 +125,14 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot, ICommandSett
             settingCommand.setupInputSettings(this);
             this.commands.push(settingCommand);
         }
+    }
+
+    private isCommandPermissions(item: object): item is ICommandPermissions {
+        return 'setupPermissions' in item;
+    }
+
+    private isCommandSettings(item: object): item is ICommandSettings {
+        return 'getSettings' in item;
     }
 
     public async setupBotSettings(): Promise<CommandSetting[]> {
