@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { CacheType, Interaction, InteractionReplyOptions } from "discord.js";
+import { CacheType, Interaction, InteractionEditReplyOptions, InteractionReplyOptions } from "discord.js";
 import { CommandUserInput, CommandInputContext } from "../../models/Command";
 import { CommandReplyOptions, CommandReplyStateOptions } from "../../models/CommandReply";
 import { StringHelper } from "../helpers/string.helper";
@@ -56,7 +56,7 @@ export class CommandReplyService {
             if (input.inputContext === CommandInputContext.interaction) {
                 if (input.interaction && input.interaction.isRepliable()) {    
                     if (options.wasDeferred && isFirst) {
-                        let replyOptions: InteractionReplyOptions = {
+                        let replyOptions: InteractionEditReplyOptions = {
                             content: content,
                             embeds: options.embeds,
                             files: options.files,

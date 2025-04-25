@@ -5,7 +5,6 @@
     "rootDir": ".",
     "outDir": "build",
     "removeComments": false,
-    "jsx": "react"
   },
   "include": [
     "src/**/*"

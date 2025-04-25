@@ -1,4 +1,4 @@
-import { ActionRowData, APIActionRowComponent, APIAttachment, APIEmbed, APIMessageActionRowComponent, Attachment, AttachmentBuilder, AttachmentPayload, BufferResolvable, JSONEncodable, MessageActionRowComponentBuilder, MessageActionRowComponentData, MessageMentionOptions } from "discord.js";
+import { APIActionRowComponent, APIAttachment, APIEmbed, APIMessageActionRowComponent, Attachment, AttachmentBuilder, AttachmentPayload, BufferResolvable, JSONEncodable, MessageActionRowComponentBuilder, MessageActionRowComponentData, MessageMentionOptions } from "discord.js";
 import { Stream } from "stream";
 
 export class CommandReplyOptions {
@@ -7,7 +7,6 @@ export class CommandReplyOptions {
     public files?: (BufferResolvable | Stream | JSONEncodable<APIAttachment> | Attachment | AttachmentBuilder | AttachmentPayload)[];
     public interactionComponents?: (    
         | JSONEncodable<APIActionRowComponent<APIMessageActionRowComponent>>
-        | ActionRowData<MessageActionRowComponentData | MessageActionRowComponentBuilder>
         | APIActionRowComponent<APIMessageActionRowComponent>
         )[];
     public mentions?: MessageMentionOptions;
