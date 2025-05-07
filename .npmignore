@@ -37,7 +37,7 @@ tsconfig.json
 tsconfig.release.json
 
 # Source Files
-src/
+/src/
 
 # Linting
 tslint.json
