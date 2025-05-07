@@ -183,7 +183,7 @@ describe('multi-guild-bot tests', () => {
         testPromise.then(() => {
             console.log('promise stuff Resolved');
         }).catch((err) => {
-            console.log('promise stuff err: ' + err);
+            console.log('promise stuff err: ' + JSON.stringify(err));
             finish();
         });
     });

@@ -299,7 +299,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot, ICommandSett
                                 this.botError('Error processing command ' + command.commandName + ': ' 
                                             + cmdErr.error + ' - Message: ' + cmdErr.message);
                             } else {
-                                this.botError('Error handling message by ' + msg.member.nickname + ': ' + cmdErr);
+                                this.botError('Error handling message by ' + msg.member.nickname + ': ' + JSON.stringify(cmdErr));
                             }
                         });
                     }
@@ -320,7 +320,7 @@ export class MultiGuildBot implements IDiscordBot, IAutoManagedBot, ICommandSett
                                 this.botError('Error processing interaction command ' + command.commandName + ': ' 
                                             + cmdErr.error + ' - Message: ' + cmdErr.message);
                             } else {
-                                this.botError('Error handling interaction message by ' + interaction.member.user.username + ': ' + cmdErr);
+                                this.botError('Error handling interaction message by ' + interaction.member.user.username + ': ' + JSON.stringify(cmdErr));
                             }
                         });
                     }

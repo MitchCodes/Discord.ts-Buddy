@@ -22,7 +22,7 @@ export class MessengerService {
                     resolve('Success');
                 }).catch((reason: any) => {
                     if (bot.logger !== null && bot.logger !== undefined) {
-                        bot.logger.error('Bot \'' + bot.name + '\' failed to send a text channel message. Error: ' + reason);
+                        bot.logger.error('Bot \'' + bot.name + '\' failed to send a text channel message. Error: ' + JSON.stringify(reason));
                     }
                     reject(reason);
                 });
@@ -47,7 +47,7 @@ export class MessengerService {
                     resolve('Success');
                 }).catch((reason: any) => {
                     if (bot.logger !== null && bot.logger !== undefined) {
-                        bot.logger.error('Bot \'' + bot.name + '\' failed to send message to user ' + user.username + '. Error: ' + reason);
+                        bot.logger.error('Bot \'' + bot.name + '\' failed to send message to user ' + user.username + '. Error: ' + JSON.stringify(reason));
                     }
                     reject(reason);
                 });
