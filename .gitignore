@@ -35,3 +35,7 @@ config.prod.json
 .DS_Store
 
 data
+
+
+# Claude
+.claude/
