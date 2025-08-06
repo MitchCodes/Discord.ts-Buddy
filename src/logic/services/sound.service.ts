@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, entersState, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection, VoiceConnectionStatus } from "@discordjs/voice";
-import { VoiceChannel } from "discord.js";
+import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, entersState, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, StreamType, VoiceConnection, VoiceConnectionStatus } from "@discordjs/voice";
+import { InternalDiscordGatewayAdapterCreator, VoiceChannel } from "discord.js";
 import { Readable } from "stream";
 import { IDiscordBot } from "../../models/DiscordBot";
 import { ILogger } from "tsdatautils-core";
@@ -251,7 +251,9 @@ export class SoundService {
             // Create audio resource with error handling
             let audioResource: AudioResource;
             try {
-                audioResource = createAudioResource(audioInput);
+                audioResource = createAudioResource(audioInput, {
+                    inputType: StreamType.Arbitrary
+                });
                 this.logInfo("Audio resource created successfully");
             } catch (resourceError) {
                 const error = new Error(`Failed to create audio resource: ${resourceError.message}`);
@@ -293,187 +295,103 @@ export class SoundService {
      * 
      * @throws {Error} For any voice connection, audio player, or playback failures
      */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private async playSoundInChannelInternal(groupId: string, guildId: string, channelId: string, adapterCreator: any, audioResource: AudioResource): Promise<void> {
-        let voiceConnection: VoiceConnection = null;
-        let audioPlayer: AudioPlayer = null;
-        let connectionReadyTimeout: NodeJS.Timeout = null;
-        let audioPlayingTimeout: NodeJS.Timeout = null;
+    private async playSoundInChannelInternal(groupId: string, guildId: string, channelId: string, adapterCreator: InternalDiscordGatewayAdapterCreator, audioResource: AudioResource): Promise<void> {
+        let voiceConnection: VoiceConnection | undefined;
+        let audioPlayer: AudioPlayer | undefined;
         
         try {
-            this.logInfo(`Attempting to join voice channel ${channelId} in guild ${guildId}`);
-            
             // Step 1: Join the voice channel
-            try {
-                voiceConnection = joinVoiceChannel({
-                    channelId: channelId,
-                    guildId: guildId,
-                    adapterCreator: adapterCreator,
-                    group: groupId,
-                });
-                this.logInfo(`Voice connection created for channel ${channelId}`);
-            } catch (joinError) {
-                const error = new Error(`Failed to join voice channel: ${joinError.message}`);
-                this.logError("Failed to join voice channel", error);
-                throw error;
-            }
-            
-            // Step 2: Wait for voice connection to be ready
-            const voiceConnectionReadyResult = this.createVoiceConnectionReadyPromise(voiceConnection, channelId);
-            connectionReadyTimeout = voiceConnectionReadyResult.timeout;
-            let voiceConnectionReady = voiceConnectionReadyResult.promise;
-    
-            await voiceConnectionReady;
-    
-            // Step 3: Create and configure the audio player
-            try {
-                audioPlayer = createAudioPlayer({
-                    behaviors: {
-                        noSubscriber: NoSubscriberBehavior.Pause,
-                    },
-                });
-                this.logInfo("Audio player created successfully");
-            } catch (playerError) {
-                const error = new Error(`Failed to create audio player: ${playerError.message}`);
-                this.logError("Failed to create audio player", error);
-                throw error;
-            }
-    
-            // Enhanced audio player error handling
-            audioPlayer.on('error', (error) => {
-                this.logError(`Audio player error: ${error.message}`, error);
-                throw new Error(`Audio player error: ${error.message}`);
+            this.logInfo(`Attempting to join voice channel ${channelId} in guild ${guildId}`);
+
+            voiceConnection = joinVoiceChannel({
+                channelId: channelId,
+                guildId: guildId,
+                adapterCreator: adapterCreator,
+                //group: groupId,
             });
 
+            // Setup error handler for the voice connection
+            voiceConnection.on('error', (error: Error) => {
+                this.logError("Voice connection error", error);
+            });
+
+            this.logInfo(`Voice connection created for channel ${channelId} in guild ${guildId}`);
+
+
+            // Step 2: Wait for voice connection to be ready
+            await entersState(voiceConnection, VoiceConnectionStatus.Ready, 15_000);
+
+
+            // Step 3: Create and configure the audio player
+            this.logInfo("Creating audio player");
+            audioPlayer = createAudioPlayer();
+            this.logInfo("Audio player created successfully");
+
             // Add more audio player event logging
-            audioPlayer.on(AudioPlayerStatus.Buffering, () => {
+            audioPlayer.once(AudioPlayerStatus.Buffering, () => {
                 this.logDebug("Audio player is buffering");
             });
 
             audioPlayer.on(AudioPlayerStatus.AutoPaused, () => {
-                this.logWarn("Audio player was auto-paused (no subscribers)");
+                this.logWarn("Audio player was auto-paused (no subscribers?)");
             });
 
-            // Step 4: Set up connection monitoring and audio player state tracking
-            let disconnectionPromise = this.createDisconnectionMonitorPromise(voiceConnection);
-            
-            const audioPlayingStartResult = this.createAudioPlayingStartPromise(audioPlayer, channelId);
-            audioPlayingTimeout = audioPlayingStartResult.timeout;
-            let audioPlayerStartedPlaying = audioPlayingStartResult.promise;
 
-            // Step 5: Validate states before attempting playback
+            // Step 4: Validate states before attempting playback
             if (!audioPlayer) {
-                const error = new Error("Audio player is null");
-                this.logError("Cannot play audio: Audio player is null", error);
-                throw error;
+                throw new Error("Cannot play audio: Audio player is null");
             }
 
             if (!audioPlayer.playable) {
-                const error = new Error("Audio player is not in a playable state");
-                this.logError("Cannot play audio: Audio player is not playable", error);
-                throw error;
+                throw new Error("Cannot play audio: Audio player is not in a playable state");
             }
 
             if (!voiceConnection) {
-                const error = new Error("Voice connection is null");
-                this.logError("Cannot play audio: Voice connection is null", error);
-                throw error;
+                throw new Error("Cannot play audio: Voice connection is null");
             }
 
             if (voiceConnection.state.status !== VoiceConnectionStatus.Ready) {
-                const error = new Error(`Voice connection is not ready. Current status: ${voiceConnection.state.status}`);
-                this.logError("Cannot play audio: Voice connection not ready", error);
-                throw error;
+                throw new Error(`Cannot play audio: Voice connection is not ready. Current status: ${voiceConnection.state.status}`);
             }
 
-            // Step 6: Start audio playback
+
+            // Step 5: Start audio playback
             this.logInfo("Starting audio playback...");
-            
-            try {
-                audioPlayer.play(audioResource);
-                this.logInfo("Audio resource passed to player");
-            } catch (playError) {
-                const error = new Error(`Failed to start audio playback: ${playError.message}`);
-                this.logError("Failed to start audio playback", error);
-                throw error;
+
+            this.logInfo("Passing audio resource passed to player");
+            audioPlayer.play(audioResource);
+            this.logInfo("Audio resource passed to player successfully");
+
+            this.logInfo("Voice connection subscribing to audio player");
+            voiceConnection.subscribe(audioPlayer);
+            this.logInfo("Voice connection successfully subscribed to audio player");
+
+
+            // Step 6: Wait for audio to start playing (with disconnection monitoring)
+            this.logInfo("Waiting for audio to start playing...");
+            await entersState(audioPlayer, AudioPlayerStatus.Playing, 5_000);
+            this.logInfo("Audio started playing successfully");
+
+
+            // Step 7: Wait for audio playback to complete
+            if (audioPlayer.state.status !== AudioPlayerStatus.Idle) {
+                await new Promise<void>((resolve, reject) => {
+                    // Called when the audio player goes to idle (completed playback)
+                    audioPlayer.once(AudioPlayerStatus.Idle, () => resolve());
+
+                    // Audio player error handling
+                    audioPlayer.once('error', (error) => {
+                        this.logError(`Audio player error: ${error.message}`, error);
+                        reject(error);
+                    });
+                });
             }
 
-            try {
-                voiceConnection.subscribe(audioPlayer);
-                this.logInfo("Voice connection subscribed to audio player");
-            } catch (subscribeError) {
-                const error = new Error(`Failed to subscribe voice connection to audio player: ${subscribeError.message}`);
-                this.logError("Failed to subscribe to audio player", error);
-                throw error;
-            }
-
-            // Step 7: Wait for audio to start playing (with disconnection monitoring)
-            try {
-                this.logInfo("Waiting for audio to start playing...");
-                await Promise.race([audioPlayerStartedPlaying, disconnectionPromise]);
-                this.logInfo("Audio started playing successfully");
-            } catch (startError) {
-                this.logError("Failed while waiting for audio to start", startError);
-                throw startError;
-            }
-
-            // Step 8: Wait for audio playback to complete
-            let audioPlayerFinishedPlaying = this.createAudioFinishedPromise(audioPlayer);
-
-            try {
-                this.logInfo("Waiting for audio playback to complete...");
-                await Promise.race([audioPlayerFinishedPlaying, disconnectionPromise]);
-                this.logInfo("Audio playback completed successfully");
-            } catch (finishError) {
-                this.logError("Error during audio playback", finishError);
-                throw finishError;
-            }
-
-            // Step 9: Clean up resources
-            this.logInfo("Cleaning up audio player and voice connection...");
-            try {
-                if (audioPlayer) {
-                    audioPlayer.stop();
-                    this.logInfo("Audio player stopped");
-                }
-            } catch (stopError) {
-                this.logError("Error stopping audio player", stopError);
-            }
-
-            try {
-                if (voiceConnection) {
-                    voiceConnection.destroy();
-                    this.logInfo("Voice connection destroyed");
-                }
-            } catch (destroyError) {
-                this.logError("Error destroying voice connection", destroyError);
-            }            
+            // Step 8: Clean up connection
+            voiceConnection?.destroy();
         } catch (err) {
             this.logError("Critical error in playSoundInChannelInternal", err instanceof Error ? err : new Error(String(err)));
-            
-            // Clean up timeouts
-            if (connectionReadyTimeout) {
-                clearTimeout(connectionReadyTimeout);
-                connectionReadyTimeout = null;
-                this.logInfo("Cleaned up connection ready timeout");
-            }
-            
-            if (audioPlayingTimeout) {
-                clearTimeout(audioPlayingTimeout);
-                audioPlayingTimeout = null;
-                this.logInfo("Cleaned up audio playing timeout");
-            }
-            
-            // Clean up audio player
-            if (audioPlayer) {
-                try {
-                    audioPlayer.stop();
-                    this.logInfo("Audio player stopped during cleanup");
-                } catch (stopError) {
-                    this.logError("Error stopping audio player during cleanup", stopError);
-                }
-            }
-            
+        
             // Clean up voice connection
             if (voiceConnection) {
                 try {
@@ -486,139 +404,6 @@ export class SoundService {
 
             // Re-throw the original error with proper type
             throw err instanceof Error ? err : new Error(String(err));
-        }        
-    }
-
-    /**
-     * Creates a promise that resolves when the voice connection is ready
-     * @private
-     */
-    private createVoiceConnectionReadyPromise(voiceConnection: VoiceConnection, channelId: string): { promise: Promise<void>, timeout: NodeJS.Timeout } {
-        let timeoutRef: NodeJS.Timeout;
-        
-        const promise = new Promise<void>((resolve, reject) => {
-            timeoutRef = setTimeout(() => {
-                const error = new Error(`Voice connection timeout after 10 seconds for channel ${channelId}`);
-                this.logError("Voice connection timeout", error);
-                reject(error);
-            }, 10000);
-
-            const onReady = () => {
-                if (timeoutRef) {
-                    clearTimeout(timeoutRef);
-                    timeoutRef = null;
-                }
-                this.logInfo(`Voice connection ready for channel ${channelId}`);
-                resolve();
-            };
-
-            const onError = (error: Error) => {
-                if (timeoutRef) {
-                    clearTimeout(timeoutRef);
-                    timeoutRef = null;
-                }
-                this.logError("Voice connection error during ready state", error);
-                reject(new Error(`Voice connection error: ${error.message}`));
-            };
-
-            voiceConnection.on(VoiceConnectionStatus.Ready, onReady);
-            voiceConnection.on('error', onError);
-        });
-        
-        return { promise, timeout: timeoutRef };
-    }
-
-    /**
-     * Creates a promise that monitors voice connection disconnections and attempts reconnection
-     * @private
-     */
-    private createDisconnectionMonitorPromise(voiceConnection: VoiceConnection): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            voiceConnection.on(VoiceConnectionStatus.Disconnected, async (oldState, newState) => {
-                this.logWarn(`Voice connection disconnected. Old state: ${oldState.status}, New state: ${newState.status}`);
-                try {
-                    this.logInfo("Attempting to reconnect voice connection...");
-                    await Promise.race([
-                        entersState(voiceConnection, VoiceConnectionStatus.Signalling, 5_000),
-                        entersState(voiceConnection, VoiceConnectionStatus.Connecting, 5_000),
-                    ]);
-                    this.logInfo("Voice connection successfully reconnected");
-                    // Connection recovered - continue normal operation
-                } catch (error) {
-                    // Real disconnect that can't be recovered from
-                    this.logError(`Voice connection permanently disconnected: ${error.message || error}`, error instanceof Error ? error : new Error(String(error)));
-                    if (voiceConnection) {
-                        voiceConnection.destroy();
-                        voiceConnection = null;
-                    }
-                    reject(new Error(`Voice connection disconnected permanently: ${error.message || error}`));
-                }
-            });
-
-            voiceConnection.on('error', (error) => {
-                this.logError("Voice connection error event", error);
-                reject(new Error(`Voice connection error: ${error.message}`));
-            });
-        });
-    }
-
-    /**
-     * Creates a promise that resolves when audio player starts playing
-     * @private
-     */
-    private createAudioPlayingStartPromise(audioPlayer: AudioPlayer, channelId: string): { promise: Promise<void>, timeout: NodeJS.Timeout } {
-        let timeoutRef: NodeJS.Timeout;
-        
-        const promise = new Promise<void>((resolve, reject) => {
-            timeoutRef = setTimeout(() => {
-                const error = new Error(`Audio player failed to start playing within 10 seconds for channel ${channelId}`);
-                this.logError("Audio playing timeout", error);
-                reject(error);
-            }, 10000);
-
-            const onPlaying = () => {
-                if (timeoutRef) {
-                    clearTimeout(timeoutRef);
-                    timeoutRef = null;
-                }
-                this.logInfo("Audio player started playing successfully");
-                resolve();
-            };
-
-            const onError = (error: Error) => {
-                if (timeoutRef) {
-                    clearTimeout(timeoutRef);
-                    timeoutRef = null;
-                }
-                this.logError("Audio player error while waiting to start", error);
-                reject(new Error(`Audio player error: ${error.message}`));
-            };
-
-            audioPlayer.on(AudioPlayerStatus.Playing, onPlaying);
-            audioPlayer.on('error', onError);
-        });
-        
-        return { promise, timeout: timeoutRef };
-    }
-
-    /**
-     * Creates a promise that resolves when audio playback finishes
-     * @private
-     */
-    private createAudioFinishedPromise(audioPlayer: AudioPlayer): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            const onIdle = () => {
-                this.logInfo("Audio playback finished (idle state)");
-                resolve();
-            };
-
-            const onError = (error: Error) => {
-                this.logError("Audio player error during playback", error);
-                reject(new Error(`Audio playback error: ${error.message}`));
-            };
-
-            audioPlayer.on(AudioPlayerStatus.Idle, onIdle);
-            audioPlayer.on('error', onError);
-        });
+        }      
     }
 }
