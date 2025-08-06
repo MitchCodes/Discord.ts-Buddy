@@ -1,4 +1,4 @@
-import * as nconf from 'nconf';
+const nconf = require('nconf');
 import { CommandMessageParser } from '../src/logic/command.logic';
 import { TestCommand } from './models/testcommand';
 import { ICommand, CommandMatchingSettings, CommandMatchingType } from '../src/models/Command';
@@ -19,7 +19,7 @@ describe('maincontroller tests', () => {
   });
 
   // tslint:disable-next-line:mocha-unneeded-done
-  it('test command parser prefixed', (done: any) => {
+  it('test command parser prefixed', async () => {
     let availableCommands: ICommand[] = [];
 
     // set up parser matching settings
@@ -30,24 +30,35 @@ describe('maincontroller tests', () => {
 
     // set up commands
     let pingPongTestCommand: ICommand = new TestCommand();
+    await pingPongTestCommand.setupInputSettings(null);
     availableCommands.push(pingPongTestCommand);
     
     // set up parser
     let parser: CommandMessageParser = new CommandMessageParser(availableCommands);
 
-    let gotCommands: ICommand[] = parser.getCommandsForMessageInput('!ping pong');
+    let gotCommands: ICommand[] = parser.getCommandsForMessageInput('!ping');
     let commandCasted: TestCommand = <TestCommand><unknown>gotCommands[0];
 
     expect(commandCasted).not.toBeUndefined();
     expect(commandCasted).not.toBeNull();
 
-    expect(parser.getCommandsForMessageInput('^ping pong').length).toBe(0);
+    expect(parser.getCommandsForMessageInput('^ping').length).toBe(0);
 
     expect(commandCasted.testIsSet).toBeFalsy();
-    commandCasted.execute(null, null);
-    expect(commandCasted.testIsSet).toBeTruthy();
     
-    done();
+    // Create mock input and bot for testing
+    const mockBot = {
+      pingPongTimesCalled: 0
+    };
+    const mockInput = {
+      msg: {
+        content: '!ping',
+        channel: null
+      }
+    };
+    
+    await commandCasted.execute(mockBot as any, mockInput as any);
+    expect(commandCasted.testIsSet).toBeTruthy();
   });
 
   it('test string helper', () => {

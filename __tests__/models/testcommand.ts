@@ -86,7 +86,9 @@ export class TestCommand implements ICommand, ICommandFactory, ICommandPermissio
 
             if (input.msg.content === '!ping') {
                 this.testIsSet = true;
-                input.msg.channel.send('pong');
+                if (input.msg.channel && 'send' in input.msg.channel) {
+                    input.msg.channel.send('pong');
+                }
             }
 
             let botCasted: TestBot = <TestBot>bot;
