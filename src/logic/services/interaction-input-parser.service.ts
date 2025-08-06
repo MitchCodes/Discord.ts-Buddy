@@ -14,7 +14,16 @@ export class InteractionInputParserService {
             result.commandTree = [];
             result.commandTree.push(interaction.commandName);
 
-            let options: readonly CommandInteractionOption[] = interaction.options.data;
+            let options: readonly CommandInteractionOption[] = null; //interaction.options.data;
+
+            if (interaction.isChatInputCommand()) {
+                options = interaction.options.data;
+            } else if (interaction.isContextMenuCommand()) {
+                options = interaction.options.data;
+            } else if (interaction.isUserContextMenuCommand()) {
+                options = interaction.options.data;
+            }
+
             if (options && options.length > 0) {
                 this.parseInteractionInputOptions(result, options, interaction);
             }

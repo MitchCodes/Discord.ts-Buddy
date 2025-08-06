@@ -46,6 +46,7 @@ export abstract class InteractionCommand implements ICommand, ICommandFactory, I
         this.inputSettings = new CommandInputSettings(messageMatchSettings, commandInteractionSettings);
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     public addInteractions(bot: IDiscordBot): CommandInteraction[] {
         return [new CommandInteraction(this.interactionRegistrationContext, this.getCommandBuilder())];
     }
