@@ -2,6 +2,7 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, entersState, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, StreamType, VoiceConnection, VoiceConnectionStatus } from "@discordjs/voice";
 import { InternalDiscordGatewayAdapterCreator, VoiceChannel } from "discord.js";
 import { Readable } from "stream";
+import { EventEmitter } from "events";
 import { IDiscordBot } from "../../models/DiscordBot";
 import { ILogger } from "tsdatautils-core";
 
@@ -14,11 +15,35 @@ import { ILogger } from "tsdatautils-core";
  * - Support for both file paths and readable streams as audio input
  * - Proper resource cleanup to prevent memory leaks
  * - Graceful handling of voice connection interruptions
+ * - Event emission for all stages of sound playback
+ * 
+ * @fires SoundService#connecting When starting to connect to a voice channel
+ * @fires SoundService#connected When successfully connected to a voice channel
+ * @fires SoundService#resource-created When an audio resource is successfully created
+ * @fires SoundService#buffering When the audio player starts buffering
+ * @fires SoundService#playing When audio playback begins
+ * @fires SoundService#finished When audio playback completes successfully
+ * @fires SoundService#error When an error occurs during any stage
+ * @fires SoundService#cleanup When resources are being cleaned up
  * 
  * @example
  * ```typescript
  * // Create service with logger (recommended)
  * const soundService = new SoundService(bot.logger);
+ * 
+ * // Listen to events
+ * soundService.on('connecting', (guildId, channelId) => {
+ *     console.log(`Connecting to voice channel ${channelId} in guild ${guildId}`);
+ * });
+ * soundService.on('playing', (guildId, channelId) => {
+ *     console.log(`Started playing audio in ${channelId}`);
+ * });
+ * soundService.on('finished', (guildId, channelId) => {
+ *     console.log(`Finished playing audio in ${channelId}`);
+ * });
+ * soundService.on('error', (guildId, channelId, error) => {
+ *     console.error(`Audio error in ${channelId}:`, error.message);
+ * });
  * 
  * // Play a sound file
  * await soundService.playSoundInChannel(bot, voiceChannel, './audio/sound.mp3');
@@ -33,7 +58,18 @@ import { ILogger } from "tsdatautils-core";
  * 
  * @since 1.3.44
  */
-export class SoundService {
+export interface SoundServiceEvents {
+    'connecting': (guildId: string, channelId: string) => void;
+    'connected': (guildId: string, channelId: string) => void;
+    'resource-created': (guildId: string, channelId: string) => void;
+    'buffering': (guildId: string, channelId: string) => void;
+    'playing': (guildId: string, channelId: string) => void;
+    'finished': (guildId: string, channelId: string) => void;
+    'error': (guildId: string, channelId: string, error: Error) => void;
+    'cleanup': (guildId: string, channelId: string) => void;
+}
+
+export class SoundService extends EventEmitter {
     private logger: ILogger;
 
     /**
@@ -43,6 +79,7 @@ export class SoundService {
      *               the service will fall back to console logging.
      */
     constructor(logger?: ILogger) {
+        super();
         this.logger = logger;
     }
 
@@ -255,6 +292,7 @@ export class SoundService {
                     inputType: StreamType.Arbitrary
                 });
                 this.logInfo("Audio resource created successfully");
+                this.emit('resource-created', voiceChannel.guild.id, voiceChannel.id);
             } catch (resourceError) {
                 const error = new Error(`Failed to create audio resource: ${resourceError.message}`);
                 this.logError("Failed to create audio resource", error);
@@ -272,6 +310,7 @@ export class SoundService {
             this.logInfo("Sound playback completed successfully");
         } catch (error) {
             this.logError("playSoundInChannel failed", error);
+            this.emit('error', voiceChannel.guild.id, voiceChannel.id, error);
             throw error;
         }
     }
@@ -302,6 +341,7 @@ export class SoundService {
         try {
             // Step 1: Join the voice channel
             this.logInfo(`Attempting to join voice channel ${channelId} in guild ${guildId}`);
+            this.emit('connecting', guildId, channelId);
 
             voiceConnection = joinVoiceChannel({
                 channelId: channelId,
@@ -320,6 +360,7 @@ export class SoundService {
 
             // Step 2: Wait for voice connection to be ready
             await entersState(voiceConnection, VoiceConnectionStatus.Ready, 15_000);
+            this.emit('connected', guildId, channelId);
 
 
             // Step 3: Create and configure the audio player
@@ -330,6 +371,7 @@ export class SoundService {
             // Add more audio player event logging
             audioPlayer.once(AudioPlayerStatus.Buffering, () => {
                 this.logDebug("Audio player is buffering");
+                this.emit('buffering', guildId, channelId);
             });
 
             audioPlayer.on(AudioPlayerStatus.AutoPaused, () => {
@@ -371,17 +413,22 @@ export class SoundService {
             this.logInfo("Waiting for audio to start playing...");
             await entersState(audioPlayer, AudioPlayerStatus.Playing, 5_000);
             this.logInfo("Audio started playing successfully");
+            this.emit('playing', guildId, channelId);
 
 
             // Step 7: Wait for audio playback to complete
             if (audioPlayer.state.status !== AudioPlayerStatus.Idle) {
                 await new Promise<void>((resolve, reject) => {
                     // Called when the audio player goes to idle (completed playback)
-                    audioPlayer.once(AudioPlayerStatus.Idle, () => resolve());
+                    audioPlayer.once(AudioPlayerStatus.Idle, () => {
+                        this.emit('finished', guildId, channelId);
+                        resolve();
+                    });
 
                     // Audio player error handling
                     audioPlayer.once('error', (error) => {
                         this.logError(`Audio player error: ${error.message}`, error);
+                        this.emit('error', guildId, channelId, error);
                         reject(error);
                     });
                 });
@@ -389,8 +436,11 @@ export class SoundService {
 
             // Step 8: Clean up connection
             voiceConnection?.destroy();
+            this.emit('cleanup', guildId, channelId);
         } catch (err) {
-            this.logError("Critical error in playSoundInChannelInternal", err instanceof Error ? err : new Error(String(err)));
+            const error = err instanceof Error ? err : new Error(String(err));
+            this.logError("Critical error in playSoundInChannelInternal", error);
+            this.emit('error', guildId, channelId, error);
         
             // Clean up voice connection
             if (voiceConnection) {
@@ -401,9 +451,10 @@ export class SoundService {
                     this.logError("Error destroying voice connection during cleanup", destroyError);
                 }
             }
+            this.emit('cleanup', guildId, channelId);
 
             // Re-throw the original error with proper type
-            throw err instanceof Error ? err : new Error(String(err));
+            throw error;
         }      
     }
 }
